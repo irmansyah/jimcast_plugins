@@ -1,0 +1,23 @@
+{
+  "name": "jimcast-app-search",
+  "version": "0.1.0",
+  "description": "A Jimcast plugin to open apps",
+  "author": "irmansyah",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "setup": "mkdir -p ~/.jimcast/plugins/jimcast-app-search && cp package.json ~/.jimcast/plugins/jimcast-app-search/package.json && pnpm exec tsup && cp dist/main.js ~/.jimcast/plugins/jimcast-app-search/dist/main.js"
+  },
+  "dependencies": {
+    "@jimcast/sdk": "file:/Users/mane/works/_startup/jimcast/jimcast-sdk/packages/sdk"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.4.0"
+  }
+}
