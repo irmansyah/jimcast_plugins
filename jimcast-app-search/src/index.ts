@@ -19,10 +19,11 @@ import type { ExecutionContext, CommandItem } from "@jimcast/sdk";
 const APP_DIRS = [
   "/Applications",
   "/System/Applications",
+  "/Users/mane/.nix-profile/bin",
 ];
 
 const BIN_DIRS = [
-  `/Users/${getUsername()}/nix-profile/bin`,
+  `/Users/${getUsername()}/.nix-profile/bin`,
   "/run/current-system/sw/bin",
   "/opt/homebrew/bin",
   "/usr/local/bin",
