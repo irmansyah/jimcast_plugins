@@ -33,7 +33,10 @@ node_modules/
 # pnpm-lock.yaml
 
 # Build outputs
+dist/
 /dist/
+*/dist/
+**/dist/
 /build/
 /out/
 /.next/
