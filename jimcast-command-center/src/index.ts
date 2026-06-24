@@ -154,11 +154,6 @@ interface User {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function fetchUsers(): Promise<User[]> {
-  const response = await fetch("https://jsonplaceholder.typicode.com/users");
-  return (await response.json()) as User[];
-}
-
 function isUserArray(data: unknown): data is User[] {
   return (
     Array.isArray(data) &&
@@ -178,7 +173,7 @@ function isUserArray(data: unknown): data is User[] {
 // ---------------------------------------------------------------------------
 
 const userListWidget = createWidget({
-  id: "jimcast-command-center.widget.user-list",
+  id: "jimcast-external.widget.command-center.user-list",
   defaultSlot: "below-input",
 
   async render(context: ExecutionContext): Promise<WidgetContent> {
@@ -202,7 +197,7 @@ const userListWidget = createWidget({
 });
 
 const userEmailBadgeWidget = createWidget({
-  id: "jimcast-command-center.widget.user-email-list",
+  id: "jimcast-external.widget.command-center.user-email-list",
   defaultSlot: "below-input",
 
   async render(context: ExecutionContext): Promise<WidgetContent> {
@@ -231,7 +226,7 @@ const userEmailBadgeWidget = createWidget({
 // ---------------------------------------------------------------------------
 
 const listUsersCommand = createCommand({
-  id: "jimcast-command-center.command.user-list",
+  id: "jimcast-external.command.command-center.user-list",
   title: "List Users",
   subtitle: "Browse all users",
   keywords: ["users", "people", "accounts"],

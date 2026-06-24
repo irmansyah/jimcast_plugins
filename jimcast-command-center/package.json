@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsc --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@jimcast/sdk": "file:/Users/mane/works/_startup/jimcast/jimcast-sdk/packages/sdk"

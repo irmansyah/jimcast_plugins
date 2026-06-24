@@ -1,15 +1,19 @@
 {
-  "name": "jimcast-app-search",
+  "name": "jimcast-plugin-starter",
   "version": "0.1.0",
-  "description": "A Jimcast plugin to open apps",
-  "author": "irmansyah",
-  "license": "MIT",
+  "description": "A minimal Jimcast plugin example",
+  "private": true,
   "type": "module",
   "main": "./dist/main.mjs",
+  "jimcast": {
+    "name": "jimcast.name",
+    "description": "jimcast.description"
+  },
   "scripts": {
     "build": "tsdown",
     "dev": "tsc --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@jimcast/sdk": "file:/Users/mane/works/_startup/jimcast/jimcast-sdk/packages/sdk"
