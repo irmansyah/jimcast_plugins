@@ -9,7 +9,7 @@
  * - Using context.copyToClipboard
  * - createWidget for persistent UI slots
  */
-import { definePlugin, createCommand, createWidget } from "@jimcast/sdk";
+import { definePlugin, createCommand, createWidget, type ExecutionContext, type WidgetContent } from "@jimcast/sdk";
 
 const helloCommand = createCommand({
   id: "jimcast-hello-test.greet",
@@ -17,7 +17,7 @@ const helloCommand = createCommand({
   subtitle: "Choose a greeting style",
   keywords: ["hi", "greet", "welcome"],
   async execute(context) {
-    const branch = context.project.branch ?? "unknown";
+    const branch = "unknown";
     return [
       {
         id: "toast-greeting",
@@ -58,72 +58,31 @@ const helloCommand = createCommand({
   },
 });
 
-const projectInfoCommand = createCommand({
-  id: "jimcast-hello-test.project-info",
-  title: "Show Project Info",
-  subtitle: "Displays info about the current project",
-  keywords: ["info", "project", "repo", "branch"],
-  async execute(context) {
-    const { project } = context;
-    return [
-      {
-        id: "cwd",
-        title: project.cwd,
-        subtitle: "Working directory",
-        accessory: "path",
-        preview: {
-          type: "markdown",
-          content: `## Project Info\n\n- **CWD:** \`${project.cwd}\`\n- **Branch:** \`${project.branch ?? "none"}\`\n- **Remote:** \`${project.remoteName ?? "none"}\`\n- **Open PRs:** ${project.openPRs.length}`,
-        },
-        actions: [
-          {
-            id: "copy-path",
-            title: "Copy Path",
-            async onAction() {
-              await context.copyToClipboard(project.cwd);
-              await context.showToast("Path copied", { style: "success" });
-            },
-          },
-        ],
-      },
-      ...(project.branch ? [
-        {
-          id: "branch",
-          title: project.branch,
-          subtitle: "Current branch",
-          accessory: "branch",
-          actions: [
-            {
-              id: "copy-branch",
-              title: "Copy Branch Name",
-              async onAction() {
-                await context.copyToClipboard(project.branch!);
-                await context.showToast("Branch name copied", { style: "success" });
-              },
-            },
-          ] as const,
-        },
-      ] : []),
-    ];
-  },
-});
-
 const branchWidget = createWidget({
   id: "jimcast-hello-test.branch-widget",
   defaultSlot: "below-input",
-  async render(context) {
-    const { project } = context;
+  async render(context: ExecutionContext): Promise<WidgetContent> {
+    const { yellow, aqua } = context.host.theme.colors;
     return {
       type: "rows",
-      rows: [
+      datas: [
         {
-          label: "branch",
-          value: project.branch ?? "none",
-          valueColor: project.branch ? "green" : "default",
+          id: 'branch',
+          attribute: {
+            label1: 'branch',
+            labelRight: "none",
+            colorRight: yellow,
+          },
+          action:  { cmd: 'echo branch', then: 'both' },
         },
         {
-          label: "cwd",
-          value: project.cwd,
+          id: 'cwd',
+          attribute: {
+            label1: 'cwd',
+            labelRight: "none",
+            colorRight: aqua,
+          },
+          action:  { cmd: 'echo cwd', then: 'both' },
         },
       ],
     };
@@ -133,6 +92,6 @@ const branchWidget = createWidget({
 export default definePlugin({
   name: "Hello Test",
   description: "A minimal example plugin showing the Jimcast SDK basics",
-  commands: [helloCommand, projectInfoCommand],
+  commands: [helloCommand],
   widgets: [branchWidget],
 });

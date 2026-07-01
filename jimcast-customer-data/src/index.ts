@@ -5,17 +5,18 @@ import {
   definePlugin, 
   type CommandItem, 
   type ExecutionContext, 
-  type WidgetContent } from "@jimcast/sdk";
+  type WidgetContent, 
+} from "@jimcast/sdk";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 interface User {
-  id: number;
-  name: string;
+  id:    number;
+  name:  string;
   email: string;
-  role: string;
+  role:  string;
 }
 
 // ---------------------------------------------------------------------------
@@ -29,75 +30,83 @@ function isUserArray(data: unknown): data is User[] {
       (item) =>
         typeof item === "object" &&
         item !== null &&
-        typeof (item as User).id === "number" &&
-        typeof (item as User).name === "string" &&
+        typeof (item as User).id    === "number" &&
+        typeof (item as User).name  === "string" &&
         typeof (item as User).email === "string"
     )
   );
 }
 
-// ---------------------------------------------------------------------------
-// Widget
-// ---------------------------------------------------------------------------
-
-const userListWidget = createWidget({
-  id: "jimcast-customer-data.widget.user-list",
-  defaultSlot: "below-input",
-  async render(context: ExecutionContext): Promise<WidgetContent> {
-    const { brightAqua, fg4, brightYellow } = context.host.theme.colors;
-
+async function fetchUsers(): Promise<User[] | null> {
+  try {
     const data: unknown = await fetch(
       "https://jsonplaceholder.typicode.com/users"
     ).then((r) => r.json());
+    return isUserArray(data) ? data : null;
+  } catch {
+    return null;
+  }
+}
 
-    if (!isUserArray(data)) {
-      return { type: "text", content: "Failed to load users." };
-    }
+// ---------------------------------------------------------------------------
+// Widgets
+// ---------------------------------------------------------------------------
+
+const userListWidget = createWidget({
+  id:          "jimcast-customer-data.widget.user-list",
+  defaultSlot: "above-input",
+
+  async render(context: ExecutionContext): Promise<WidgetContent> {
+    const { purple, fg, fg4 } = context.host.theme.colors;
+
+    const users = await fetchUsers();
+    if (!users) return { type: "error", message: "Failed to load users." };
 
     return {
-      type: "rows",
-      rows: data.slice(0, 5).map((user) => ({
-        label:      user.name,
-        labelColor: fg4,
-        value:      user.email,
-        valueColor: brightAqua,
-        accessory:      user.role ?? "member",
-        accessoryColor: brightYellow,
+      type:  "list",
+      datas: users.map((user) => ({
+        id: String(user.id),
+        attribute: {
+          label1:     user.name,
+          color1:     fg,
+          label2:     user.role ?? "member",
+          color2:     purple,
+          labelRight: user.email,
+          colorRight: fg4,
+        },
+        action: async (ctx: ExecutionContext) => {
+          await ctx.showToast(`Switched to ${user.email}`);
+        },
       })),
     };
   },
 });
 
 const userEmailBadgeWidget = createWidget({
-  id: "jimcast-customer-data.widget.user-email-list",
+  id:          "jimcast-customer-data.widget.user-email-list",
   defaultSlot: "below-input",
-  // title: "Email List",
-  // showIn:  ['default'],
-  // repeat:  true,
-  // seconds: 5,
-  // action:  { cmd: 'tmux switch-client -t {id}', then: 'both' },
+
   async render(context: ExecutionContext): Promise<WidgetContent> {
     const { brightPurple, fg, fg4 } = context.host.theme.colors;
 
-    const data: unknown = await fetch(
-      "https://jsonplaceholder.typicode.com/users"
-    ).then((r) => r.json());
-
-    if (!isUserArray(data)) {
-      return { type: "text", content: "Failed to load users." };
-    }
+    const users = await fetchUsers();
+    if (!users) return { type: "error", message: "Failed to load users." };
 
     return {
-      type: "grid-3",
-      cards: data.map((user) => ({
-        id:         String(user.id),
-        icon:       "👤",
-        title:      user.name,
-        titleColor: fg,
-        sub:        user.email,
-        subColor:   brightPurple,
-        right:      user.role ?? "member",
-        rightColor: fg4,
+      type:  "grid-3",
+      datas: users.map((user) => ({
+        id: String(user.id),
+        attribute: {
+          label1:     user.name,
+          color1:     fg,
+          label2:     user.email,
+          color2:     brightPurple,
+          labelRight: user.role ?? "member",
+          colorRight: fg4,
+        },
+        action: async (ctx: ExecutionContext) => {
+          await ctx.exec(`echo ${user.email}`);
+        },
       })),
     };
   },
@@ -108,43 +117,41 @@ const userEmailBadgeWidget = createWidget({
 // ---------------------------------------------------------------------------
 
 const listUsersCommand = createCommand({
-  id: "jimcast-external.command.customer.user-list",
-  title: "List Users",
+  id:       "jimcast-external.command.customer.user-list",
+  title:    "List Users",
   subtitle: "Browse all users",
   keywords: ["users", "people", "accounts"],
 
   async execute(context: ExecutionContext): Promise<CommandItem[]> {
-    const data: unknown = await fetch(
-      "https://jsonplaceholder.typicode.com/users"
-    ).then((r) => r.json());
-
-    if (!isUserArray(data)) {
+    const users = await fetchUsers();
+    if (!users) {
       await context.showToast("Failed to load users.");
       return [];
     }
 
-    return data.map((user) => ({
-      id: String(user.id),
-      title: user.name,
-      subtitle: user.email,
+    return users.map((user) => ({
+      id:        String(user.id),
+      title:     user.name,
+      subtitle:  user.email,
       accessory: user.role ?? "member",
-      keywords: [user.email],
+      keywords:  [user.email],
       preview: {
-        type: "markdown",
+        type:    "markdown",
         content: `## ${user.name}\n\n- **Email:** ${user.email}\n- **Role:** ${user.role ?? "member"}`,
       },
       actions: [
         {
-          id: `copy-email-${user.id}`,
-          title: "Copy Email",
+          id:       `copy-email-${user.id}`,
+          title:    "Copy Email",
           shortcut: "cmd+shift+c",
           async onAction() {
+            await context.copyToClipboard(user.email);
             await context.showToast(`Copied: ${user.email}`);
           },
         },
         {
-          id: `view-user-${user.id}`,
-          title: "View Profile",
+          id:       `view-user-${user.id}`,
+          title:    "View Profile",
           shortcut: "cmd+return",
           async onAction() {
             await context.showToast(`Viewing: ${user.name}`);
@@ -160,7 +167,7 @@ const listUsersCommand = createCommand({
 // ---------------------------------------------------------------------------
 
 const userGroup = createCommandGroup({
-  title: "Users",
+  title:    "Users",
   commands: [listUsersCommand],
 });
 
@@ -169,8 +176,8 @@ const userGroup = createCommandGroup({
 // ---------------------------------------------------------------------------
 
 export default definePlugin({
-  name: "User Directory",
-  description: "Browse and manage users from the command bar",
-  commands: [userGroup],
-  widgets: [userListWidget, userEmailBadgeWidget],
+  name:        "Customer Data List",
+  description: "Customer Data List",
+  commands:    [userGroup],
+  widgets:     [userListWidget, userEmailBadgeWidget],
 });
