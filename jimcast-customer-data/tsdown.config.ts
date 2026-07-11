@@ -8,6 +8,7 @@ export default defineConfig({
   unbundle: false,
   deps: {
     alwaysBundle: ["@jimcast/sdk"],
+    onlyBundle: false
   },
   sourcemap: false,
   clean: true,
