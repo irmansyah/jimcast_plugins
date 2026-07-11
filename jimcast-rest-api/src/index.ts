@@ -100,7 +100,7 @@ const restApiWidget = createWidget({
     if (!url) return { type: "text", data: "Missing URL." };
 
     return {
-      type: "rows",
+      type: "list",
       datas: [
         {
           id: "send",
@@ -147,7 +147,7 @@ const fileExplorerWidget = createWidget({
     }
 
     return {
-      type: "rows",
+      type: "list",
       datas: entries.map((entry, i) => ({
         id: String(i),
         attribute: {
@@ -175,7 +175,7 @@ const taskManagementWidget = createWidget({
 
     if (trimmed) {
       return {
-        type: "rows",
+        type: "list",
         datas: [
           {
             id: "add-new",
