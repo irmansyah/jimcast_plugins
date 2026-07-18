@@ -60,7 +60,7 @@ const helloCommand = createCommand({
 
 const branchWidget = createWidget({
   id: "jimcast-hello-test.branch-widget",
-  defaultSlot: "below-input",
+  showIn: ["default"],
   async render(context: ExecutionContext): Promise<WidgetContent> {
     const { yellow, aqua } = context.host.theme.colors;
     return {
@@ -73,7 +73,6 @@ const branchWidget = createWidget({
             labelRight: "none",
             colorRight: yellow,
           },
-          action:  { cmd: 'echo branch', then: 'both' },
         },
         {
           id: 'cwd',
@@ -82,7 +81,6 @@ const branchWidget = createWidget({
             labelRight: "none",
             colorRight: aqua,
           },
-          action:  { cmd: 'echo cwd', then: 'both' },
         },
       ],
     };
