@@ -8,7 +8,7 @@ plugin.stdin.write(JSON.stringify({
   id: "1",
   command: "executeCommand",
   args: {
-    commandId: "jimcast-hello-test.greet",
+    commandId: "jimcast.command.customer.user-list",
     projectContext: {
       cwd: process.cwd(),
       repoRoot: null,

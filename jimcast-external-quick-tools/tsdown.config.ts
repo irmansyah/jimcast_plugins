@@ -1,3 +1,5 @@
+// [plugin] jimcast-external-quick-tools/tsdown.config.ts
+
 import { defineConfig } from "tsdown";
 import { execSync } from "child_process";
 import { basename } from "path";
@@ -7,7 +9,8 @@ export default defineConfig({
   format: ["esm"],
   unbundle: false,
   deps: {
-    alwaysBundle: ["@jimcast/sdk"],
+    alwaysBundle: ["@jimcast/sdk", "@jimcast/sdk/runtime"],
+    onlyBundle: false
   },
   sourcemap: false,
   clean: true,

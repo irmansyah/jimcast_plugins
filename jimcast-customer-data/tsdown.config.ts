@@ -7,7 +7,7 @@ export default defineConfig({
   format: ["esm"],
   unbundle: false,
   deps: {
-    alwaysBundle: ["@jimcast/sdk"],
+    alwaysBundle: ["@jimcast/sdk", "@jimcast/sdk/runtime"],
     onlyBundle: false
   },
   sourcemap: false,
