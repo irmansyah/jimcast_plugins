@@ -1,5 +1,5 @@
 {
-  "name": "jimcast-rest-api",
+  "name": "jimcast-external-rest-api",
   "version": "0.1.0",
   "description": "A minimal Jimcast plugin example",
   "author": "Irmansyah",
@@ -17,10 +17,10 @@
     "react-dom": "^19.2.6"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3",
-    "tsdown": "^0.22.2",
-    "typescript": "^6.0.3",
+    "@types/node": "^25.9.5",
     "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3"
+    "@types/react-dom": "^19.2.3",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3"
   }
 }

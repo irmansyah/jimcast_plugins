@@ -1,4 +1,4 @@
-// [plugin] jimcast-customer-data/src/index.ts
+// [plugin] jimcast-external-customer-data/src/index.ts
 
 import {
   createCommand,
@@ -9,18 +9,6 @@ import {
   type ExecutionContext,
   type WidgetContent,
 } from "@jimcast/sdk";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface User {
-  id:    number;
-  name:  string;
-  email: string;
-  /** jsonplaceholder's /users endpoint never actually returns this. */
-  role?: string;
-}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -67,7 +55,7 @@ async function fetchUsers(): Promise<User[] | null> {
 // ---------------------------------------------------------------------------
 
 const userEmailBadgeWidget = createWidget({
-  id: "jimcast-customer-data.widget.user-email-list",
+  id: "jimcast-external-customer-data.widget.user-email-list",
   showIn: ['default'],
   showSection: true,
   async render(ctx: ExecutionContext): Promise<WidgetContent> {
@@ -99,7 +87,7 @@ const userEmailBadgeWidget = createWidget({
 // ---------------------------------------------------------------------------
 
 const listUsersCommand = createCommand({
-  id:       "jimcast-customer-data.command.user-list",
+  id:       "jimcast-external-customer-data.command.user-list",
   title:    "List Users",
   subtitle: "Browse all users",
   keywords: ["users", "people", "accounts"],
