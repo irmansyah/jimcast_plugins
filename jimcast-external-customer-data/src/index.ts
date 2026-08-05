@@ -57,7 +57,7 @@ async function fetchUsers(): Promise<User[] | null> {
 const userEmailBadgeWidget = createWidget({
   id: "jimcast-external-customer-data.widget.user-email-list",
   showIn: ['default'],
-  showSection: true,
+  sectionTitleShow: true,
   async render(ctx: ExecutionContext): Promise<WidgetContent> {
     const { brightPurple, fg, fg4 } = ctx.host.theme.colors;
 

@@ -273,8 +273,12 @@ const restApisExpandableChilds = QUICK_TOOLS.map((tool) => ({
 
 const externalQuickToolsWidget = createWidget<true>({
   id: "jimcast-external-quick-tools.widget.external-quick-tools",
-  showIn: ["default"],
-  showSection: false,
+  showIn: ["default", "search"],
+  section: {
+    titleShow: false,
+    navigationActive: false,
+    querySearchActive: false,
+  },
   expandable: true,
   async render(context: ExecutionContext): Promise<WidgetContent<true>> {
     const { yellow } = context.host.theme.colors;
@@ -358,7 +362,7 @@ const userGroup = createCommandGroup({
 // ---------------------------------------------------------------------------
 
 export default definePlugin({
-  name:        "External Quick Tools",
+  name:        "External Quick Tools!!!",
   description: "External Quick Tools",
   commands:    [userGroup],
   widgets:     [

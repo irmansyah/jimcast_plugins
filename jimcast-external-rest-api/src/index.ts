@@ -105,7 +105,10 @@ async function runRequest(
 
 const restApiWidget = createWidget({
   id: "jimcast-external-rest-api.widget.external-rest-api",
-  showSection: true,
+  section: {
+    show: true,
+    queryNavigationActive: false,
+  },
   async render(ctx: ExecutionContext): Promise<WidgetContent> {
     const last   = await loadLastResult(ctx);
     const values = await loadLastValues(ctx);
