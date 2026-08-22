@@ -1,0 +1,7 @@
+{
+  "name": "jimcast-react-rest",
+  "displayName": "REACT REST",
+  "version": "1.0.0",
+  "entry": "dist/index.html",
+  "capabilities": []
+}

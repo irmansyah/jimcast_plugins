@@ -1,0 +1,7 @@
+{
+  "name": "jimcast-react-kanban-v2",
+  "displayName": "REACT KANBAN",
+  "version": "2.0.0",
+  "entry": "dist/index.html",
+  "capabilities": []
+}

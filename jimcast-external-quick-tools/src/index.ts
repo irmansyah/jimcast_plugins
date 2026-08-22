@@ -273,7 +273,7 @@ const restApisExpandableChilds = QUICK_TOOLS.map((tool) => ({
 
 const externalQuickToolsWidget = createWidget<true>({
   id: "jimcast-external-quick-tools.widget.external-quick-tools",
-  showIn: ["default", "search"],
+  showIn: ["default"],
   section: {
     titleShow: false,
     navigationActive: false,

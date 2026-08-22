@@ -1,0 +1,16 @@
+{
+  "keymap": {
+    "moveFocusUp": ["k", "ArrowUp"],
+    "moveFocusDown": ["j", "ArrowDown"],
+    "moveFocusLeft": ["h", "ArrowLeft"],
+    "moveFocusRight": ["l", "ArrowRight"],
+    "openCard": ["Enter"],
+    "newCard": ["n"],
+    "deleteCard": ["d"],
+    "moveCardLeft": ["H"],
+    "moveCardRight": ["L"],
+    "focusSearch": ["/"],
+    "closeOrBack": ["Escape"],
+    "toggleHelp": ["?"]
+  }
+}

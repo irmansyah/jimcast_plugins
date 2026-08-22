@@ -1,3 +1,5 @@
+// [plugin] jimcast-plugins/jimcast-external-customer-data/tsdown.config.ts
+
 import { defineConfig } from "tsdown";
 import { execSync } from "child_process";
 import { basename } from "path";
