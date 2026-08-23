@@ -6,29 +6,27 @@
 // fields — timestamps, card descriptions, board color, etc — extend these
 // and kanbanLogic.ts's constructors accordingly; nothing else here assumes
 // the shape is closed.
-
 export interface Card {
   id: string;
   title: string;
+  /** Soft-delete flag (Phase A #2). Archived cards are hidden from normal
+   * board rendering — see useKanbanWorkspace.ts's `visibleColumns` — but
+   * remain in storage so `:unarchive` can bring them back. */
+  archived?: boolean;
 }
-
 export interface Column {
   id: string;
   title: string;
   cards: Card[];
 }
-
 export interface Board {
   id: string;
   name: string;
   columns: Column[];
 }
-
 export interface KanbanState {
   boards: Board[];
 }
-
 // ─── UI-only types ──────────────────────────────────────────────────────
-
 /** Which pane currently owns keyboard focus, mirrors rest's Zone concept. */
 export type Zone = "board" | "cardModal" | "search";

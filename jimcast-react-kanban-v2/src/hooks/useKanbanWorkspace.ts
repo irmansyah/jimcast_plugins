@@ -10,11 +10,39 @@
 // Cursor { sec, item } in state rather than relying on tab order (see the
 // carry-forward doc's "Keyboard-nav UI note"). The focus ring is rendered
 // off derived focusedColumnId/focusedCardId, not :focus-visible.
+//
+// Phase A additions:
+//   - column ops (createColumn/renameColumn/deleteColumn/moveColumn) and
+//     resolveColumnTarget, backing the new :new-column/:rename-column/
+//     :delete-column/:move-column commands.
+//   - archiveFocusedCard/unarchiveCard + resolveArchivedCardTarget, backing
+//     :archive/:unarchive/:archived.
+//   - visibleColumns: derived from `columns`, with archived cards always
+//     stripped and (when searchActive) a further title-match filter. This
+//     was previously dead state — searchQuery was set by focusSearch()/`/`
+//     but nothing read it. NOTE: BoardView.tsx needs to render
+//     `workspace.visibleColumns` instead of `workspace.columns` for this to
+//     actually show up — that file wasn't available this session, so the
+//     swap isn't made for you. It should be a one-line prop change.
+//   - runSearch/clearSearch: like focusSearch, but for the :search command
+//     (sets the query without needing to also move DOM focus into the
+//     search input, since focus is already on the command line).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useHostStorage } from "@jimcast/react-sdk/client";
-import type { Board, Card, KanbanState } from "../types";
-import { addCard, createBoard, deleteBoard, deleteCard, moveCard } from "../domain/kanbanLogic";
+import type { Board, Card, Column, KanbanState } from "../types";
+import {
+  addCard,
+  addColumn,
+  archiveCard,
+  createBoard,
+  deleteBoard,
+  deleteCard,
+  deleteColumn,
+  moveCard,
+  moveColumn,
+  renameColumn,
+} from "../domain/kanbanLogic";
 
 const EMPTY_STATE: KanbanState = { boards: [] };
 const STORAGE_KEY = "kanbanState";
@@ -113,6 +141,17 @@ export function useKanbanWorkspace() {
   const focusedColumnId = focusedColumn?.id ?? null;
   const focusedCardId = focusedCard?.id ?? null;
 
+  // Archived cards are always hidden from the board; a search query (when
+  // active) further filters to title matches. BoardView.tsx should render
+  // this instead of `columns` — see file-header note.
+  const visibleColumns = useMemo<Column[]>(() => {
+    const q = searchActive ? searchQuery.trim().toLowerCase() : "";
+    return columns.map((c) => ({
+      ...c,
+      cards: c.cards.filter((card) => !card.archived && (!q || card.title.toLowerCase().includes(q))),
+    }));
+  }, [columns, searchActive, searchQuery]);
+
   const editingCard: Card | null = useMemo(() => {
     if (!editingCardId || !currentBoard) return null;
     for (const c of currentBoard.columns) {
@@ -150,6 +189,44 @@ export function useKanbanWorkspace() {
     const byIndex = state.boards[Number(arg) - 1];
     if (byIndex) return byIndex;
     return state.boards.find((b) => b.name.toLowerCase() === arg.trim().toLowerCase()) || null;
+  }
+
+  // ─── Column resolution + ops (Phase A) ─────────────────────────────────
+
+  function resolveColumnTarget(arg: string): Column | null {
+    if (!currentBoard) return null;
+    if (!arg || !arg.trim()) return focusedColumn;
+    const byIndex = columns[Number(arg) - 1];
+    if (byIndex) return byIndex;
+    return columns.find((c) => c.title.toLowerCase() === arg.trim().toLowerCase()) || null;
+  }
+
+  function handleCreateColumn(title: string): Column | null {
+    if (!currentBoard) return null;
+    const { state: next, column } = addColumn(state, currentBoard.id, title);
+    setState(next);
+    return column;
+  }
+
+  function handleRenameColumn(columnId: string, title: string) {
+    if (!currentBoard) return;
+    setState((prev) => renameColumn(prev, currentBoard.id, columnId, title));
+  }
+
+  function handleDeleteColumn(columnId: string) {
+    if (!currentBoard) return;
+    setState((prev) => deleteColumn(prev, currentBoard.id, columnId));
+    setFocusedColumnIndex((idx) => Math.max(0, Math.min(idx, columns.length - 2)));
+    setFocusedCardIndex(null);
+  }
+
+  function handleMoveColumn(columnId: string, dir: "left" | "right") {
+    if (!currentBoard) return;
+    const idx = columns.findIndex((c) => c.id === columnId);
+    setState((prev) => moveColumn(prev, currentBoard.id, columnId, dir));
+    if (idx !== -1 && idx === focusedColumnIndex) {
+      setFocusedColumnIndex(dir === "left" ? Math.max(0, idx - 1) : Math.min(columns.length - 1, idx + 1));
+    }
   }
 
   function moveFocus(dir: "up" | "down" | "left" | "right") {
@@ -236,10 +313,38 @@ export function useKanbanWorkspace() {
 
   function resolveCardTarget(arg: string): Card | null {
     if (!focusedColumn) return null;
-    if (!arg) return focusedCard;
-    const byIndex = focusedColumn.cards[Number(arg) - 1];
+    const visible = focusedColumn.cards.filter((c) => !c.archived);
+    if (!arg) return focusedCard && !focusedCard.archived ? focusedCard : null;
+    const byIndex = visible[Number(arg) - 1];
     if (byIndex) return byIndex;
-    return focusedColumn.cards.find((c) => c.title.toLowerCase() === arg.trim().toLowerCase()) || null;
+    return visible.find((c) => c.title.toLowerCase() === arg.trim().toLowerCase()) || null;
+  }
+
+  // Archived cards are deliberately excluded from resolveCardTarget above,
+  // so :unarchive needs its own resolver that looks across the *whole*
+  // board (not just the focused column — you archived it from wherever it
+  // was, but might not still be focused there).
+  function resolveArchivedCardTarget(arg: string): Card | null {
+    if (!currentBoard) return null;
+    const archived = columns.flatMap((c) => c.cards.filter((card) => card.archived));
+    if (!arg || !arg.trim()) return archived[0] ?? null;
+    const byIndex = archived[Number(arg) - 1];
+    if (byIndex) return byIndex;
+    return archived.find((c) => c.title.toLowerCase() === arg.trim().toLowerCase()) || null;
+  }
+
+  function archivedCards(): Card[] {
+    return columns.flatMap((c) => c.cards.filter((card) => card.archived));
+  }
+
+  function archiveFocusedCard() {
+    if (!currentBoard || !focusedCard) return;
+    setState((prev) => archiveCard(prev, currentBoard.id, focusedCard.id, true));
+  }
+
+  function unarchiveCard(cardId: string) {
+    if (!currentBoard) return;
+    setState((prev) => archiveCard(prev, currentBoard.id, cardId, false));
   }
 
   function renameFocusedCard(title: string) {
@@ -264,6 +369,18 @@ export function useKanbanWorkspace() {
     requestAnimationFrame(() => searchInputRef.current?.focus());
   }
 
+  // Sets the search query without moving DOM focus — used by the :search
+  // command, since the command line already has focus at that point.
+  function runSearch(query: string) {
+    setSearchActive(true);
+    setSearchQuery(query);
+  }
+
+  function clearSearch() {
+    setSearchActive(false);
+    setSearchQuery("");
+  }
+
   function closeOrBack() {
     if (deleteConfirmCardId) return cancelDeleteCard();
     if (newCardColumnId) return cancelNewCard();
@@ -281,10 +398,12 @@ export function useKanbanWorkspace() {
     currentBoard,
     currentBoardId,
     columns,
+    visibleColumns,
     focusedColumnIndex,
     focusedCardIndex,
     focusedColumnId,
     focusedCardId,
+    focusedColumn,
     focusedCard,
     newCardColumnId,
     newCardInputRef,
@@ -301,6 +420,12 @@ export function useKanbanWorkspace() {
     deleteBoard: handleDeleteBoard,
     resolveBoardTarget,
 
+    resolveColumnTarget,
+    createColumn: handleCreateColumn,
+    renameColumn: handleRenameColumn,
+    deleteColumn: handleDeleteColumn,
+    moveColumn: handleMoveColumn,
+
     moveFocus,
     openFocusedCard,
     newCardInFocusedColumn,
@@ -312,7 +437,15 @@ export function useKanbanWorkspace() {
     moveFocusedCard,
     resolveCardTarget,
     renameFocusedCard,
+
+    resolveArchivedCardTarget,
+    archivedCards,
+    archiveFocusedCard,
+    unarchiveCard,
+
     focusSearch,
+    runSearch,
+    clearSearch,
     closeOrBack,
     closeCardModal: () => setEditingCardId(null),
   };

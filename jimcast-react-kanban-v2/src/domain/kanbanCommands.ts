@@ -1,131 +1,42 @@
 // jimcast-react-kanban-v2/src/domain/kanbanCommands.ts
+//
+// Phase A #3: this used to be one flat ~250-line function. Now it just
+// composes the four split-out modules in domain/commands/. Behavior for
+// every pre-existing command (list-boards, new-board/nb, delete-board/db,
+// board/b, focus, new/n, delete/d, move/m, rename) is unchanged — this is
+// a pure relocation for those. New commands (:new-column and friends,
+// :archive/:unarchive/:archived, :search/:clear-search, and :list/:commands/
+// :? now opening the help modal) live in their respective new modules.
+//
+// `openHelp` is optional and threaded straight through to
+// buildUtilityCommands — see that file's header comment and HANDOFF.md for
+// what still needs wiring in App.tsx to actually open the modal instead of
+// falling back to a toast.
 
 import type { CommandLineRegistry, Feedback } from "@jimcast/react-sdk/react";
 import type { KanbanWorkspace } from "../hooks/useKanbanWorkspace";
-import { callHost } from "@jimcast/react-sdk/client";
+import { buildBoardCommands } from "./commands/boardCommands";
+import { buildCardCommands } from "./commands/cardCommands";
+import { buildColumnCommands } from "./commands/columnCommands";
+import { buildUtilityCommands } from "./commands/utilityCommands";
 
 export function buildKanbanCommands(
   workspace: KanbanWorkspace,
   notify: (f: Feedback) => void,
+  openHelp?: () => void,
 ): CommandLineRegistry {
-  return [
-    {
-      name: "list-boards",
-      usage: "list-boards",
-      run: () => {
-        callHost<{ boards: string[] }>("list-boards", {})
-          .then((result) => {
-            notify({ type: "ok", text: result.boards.join(", ") || "No boards" });
-          })
-          .catch((e) => {
-            notify({ type: "ok", text: `list-boards failed: ${e instanceof Error ? e.message : String(e)}` });
-          });
-        return { ok: true, message: "Loading boards…" };
-      },
-    },
-    {
-      name: "new-board",
-      aliases: ["nb"],
-      usage: "new-board <name>",
-      run: ({ rest }) => {
-        if (!rest.trim()) return { ok: false, message: "Usage: new-board <name>" };
-        const board = workspace.createBoard(rest.trim());
-        return { ok: true, message: `Created board "${board.name}"` };
-      },
-    },
-    {
-      name: "delete-board",
-      aliases: ["db"],
-      usage: "delete-board [name|#]",
-      run: ({ rest }) => {
-        const target = workspace.resolveBoardTarget(rest);
-        if (!target) return { ok: false, message: `No board found for "${rest}"` };
-        return {
-          confirm: true,
-          message: `Delete board "${target.name}"? y/n`,
-          onConfirm: () => {
-            workspace.deleteBoard(target.id);
-            notify({ type: "ok", text: `Deleted board "${target.name}"` });
-          },
-          onCancel: () => notify({ type: "ok", text: "Delete cancelled" }),
-        };
-      },
-    },
-    {
-      name: "board",
-      aliases: ["b"],
-      usage: "board <name|#>",
-      run: ({ rest }) => {
-        const target = workspace.resolveBoardTarget(rest);
-        if (!target) return { ok: false, message: `No board found for "${rest}"` };
-        workspace.selectBoard(target.id);
-        return { ok: true, message: `Switched to "${target.name}"` };
-      },
-    },
-    {
-      name: "focus",
-      usage: "focus <column>",
-      run: ({ rest }) => {
-        if (!workspace.currentBoard) return { ok: false, message: "No board open" };
-        const idx = workspace.columns.findIndex((c) => c.title.toLowerCase() === rest.trim().toLowerCase());
-        if (idx === -1) return { ok: false, message: `No such column "${rest}"` };
-        const delta = idx - workspace.focusedColumnIndex;
-        const dir = delta < 0 ? "left" : "right";
-        for (let i = 0; i < Math.abs(delta); i++) workspace.moveFocus(dir);
-        return { ok: true, message: `Focused "${rest}"` };
-      },
-    },
-    {
-      name: "new",
-      aliases: ["n"],
-      usage: "new <title>",
-      run: ({ rest }) => {
-        if (!workspace.currentBoard) return { ok: false, message: "No board open" };
-        if (!rest.trim()) return { ok: false, message: "Usage: new <title>" };
-        workspace.newCardInFocusedColumn();
-        const card = workspace.submitNewCard(rest.trim());
-        return { ok: true, message: card ? `Added "${card.title}"` : "Added card" };
-      },
-    },
-    {
-      name: "delete",
-      aliases: ["d"],
-      usage: "delete [title|#]",
-      run: ({ rest }) => {
-        const target = workspace.resolveCardTarget(rest);
-        if (!target) return { ok: false, message: `No card found for "${rest}"` };
-        return {
-          confirm: true,
-          message: `Delete "${target.title}"? y/n`,
-          onConfirm: () => {
-            workspace.confirmDeleteCard(target.id);
-            notify({ type: "ok", text: `Deleted "${target.title}"` });
-          },
-          onCancel: () => notify({ type: "ok", text: "Delete cancelled" }),
-        };
-      },
-    },
-    {
-      name: "move",
-      aliases: ["m"],
-      usage: "move left|right",
-      run: ({ rest }) => {
-        const dir = rest.trim().toLowerCase();
-        if (dir !== "left" && dir !== "right") return { ok: false, message: "Usage: move left|right" };
-        if (!workspace.focusedCard) return { ok: false, message: "No card focused" };
-        workspace.moveFocusedCard(dir);
-        return { ok: true, message: `Moved "${workspace.focusedCard.title}" ${dir}` };
-      },
-    },
-    {
-      name: "rename",
-      usage: "rename <title>",
-      run: ({ rest }) => {
-        if (!workspace.focusedCard) return { ok: false, message: "No card focused" };
-        if (!rest.trim()) return { ok: false, message: "Usage: rename <title>" };
-        workspace.renameFocusedCard(rest.trim());
-        return { ok: true, message: "Renamed" };
-      },
-    },
+  const registry: CommandLineRegistry = [
+    ...buildBoardCommands(workspace, notify),
+    ...buildColumnCommands(workspace, notify),
+    ...buildCardCommands(workspace, notify),
+    ...buildUtilityCommands(workspace, notify, openHelp, () => summarize(registry)),
   ];
+  return registry;
+}
+
+// Fallback toast text for :list/:commands/:? when openHelp isn't wired up
+// yet — same "joined line" shape the original had, just factored out so
+// utilityCommands.ts doesn't need to know the full registry itself.
+function summarize(registry: CommandLineRegistry): string {
+  return registry.map((c) => c.usage).join("  ·  ");
 }

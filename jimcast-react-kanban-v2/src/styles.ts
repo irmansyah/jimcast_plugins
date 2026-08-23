@@ -6,6 +6,22 @@
 // ring — matching designSystem.ts's selectedSurface()/focusRing() shape
 // (see the carry-forward doc's "Keyboard-nav UI note").
 //
+// Now driven by the real host theme via @jimcast/react-sdk's useTheme()
+// hook instead of hand-picked --kb-* hex values — see App.tsx for the
+// call site. kanbanStyles is a function of ThemeContext['colors'] so it
+// re-renders the injected <style> tag whenever the host's 'theme'
+// postMessage updates it (see client/theme.ts).
+//
+// --kb-* variable -> ThemeColors field mapping (pick by role, not by eye):
+//   --kb-bg      -> colors.bg          base background
+//   --kb-bg2     -> colors.bg1         raised surfaces (columns, modals)
+//   --kb-fg      -> colors.fg          primary text
+//   --kb-fg2     -> colors.fg2         secondary text (card body)
+//   --kb-fg4     -> colors.fg4         muted text / placeholders
+//   --kb-accent  -> colors.brightBlue  focus / selection / primary action
+//   --kb-danger  -> colors.brightRed   delete-confirm state
+//   --kb-border  -> colors.bg3         hairline borders
+//
 // Scroll containment: html/body/#root are reset and locked to 100% height
 // with overflow hidden, so the document itself never scrolls or grows —
 // the app always matches whatever height the host/iframe assigns it,
@@ -15,16 +31,37 @@
 // that lets a flex item's own overflow:auto actually take effect instead
 // of the item growing to fit its content and pushing ancestors taller.
 
-export const kanbanStyles = `
+import type { ThemeColors } from "@jimcast/protocol";
+
+// Mirrors designSystem.ts's hex-alpha-suffix alpha() helper — plugins
+// can't import that file directly (sandboxed, see header above), so this
+// is a local, minimal re-implementation of the same convention. Assumes
+// theme colors are 6-digit hex strings, matching every palette in
+// packages/protocol/src/themes/*.ts.
+function alpha(color: string, hexSuffix: string): string {
+  return `${color}${hexSuffix}`;
+}
+
+export function kanbanStyles(colors: ThemeColors): string {
+  const bg = colors.bg;
+  const bg2 = colors.bg1;
+  const fg = colors.fg;
+  const fg2 = colors.fg2;
+  const fg4 = colors.fg4;
+  const accent = colors.brightBlue;
+  const danger = colors.brightRed;
+  const border = colors.bg3;
+
+  return `
 :root {
-  --kb-bg: #1b1c20;
-  --kb-bg2: #232429;
-  --kb-fg: #e6e6e8;
-  --kb-fg2: #b8b9c0;
-  --kb-fg4: #6b6c74;
-  --kb-accent: #5b9dff;
-  --kb-danger: #ff6b6b;
-  --kb-border: #33343b;
+  --kb-bg: ${bg};
+  --kb-bg2: ${bg2};
+  --kb-fg: ${fg};
+  --kb-fg2: ${fg2};
+  --kb-fg4: ${fg4};
+  --kb-accent: ${accent};
+  --kb-danger: ${danger};
+  --kb-border: ${border};
 }
 
 * { box-sizing: border-box; }
@@ -115,7 +152,7 @@ html, body {
 }
 
 .column.focused {
-  border-color: rgba(91, 157, 255, 0.55);
+  border-color: ${alpha(accent, "8C")};
 }
 
 .column-title {
@@ -139,7 +176,7 @@ html, body {
 
 .card {
   background: var(--kb-bg);
-  border: 1px solid rgba(107, 108, 116, 0.33);
+  border: 1px solid ${alpha(fg4, "55")};
   border-radius: 4px;
   padding: 8px;
   cursor: pointer;
@@ -149,14 +186,14 @@ html, body {
 
 .card.focused {
   background: var(--kb-bg2);
-  border-color: rgba(91, 157, 255, 0.55);
+  border-color: ${alpha(accent, "8C")};
   color: var(--kb-accent);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(91, 157, 255, 0.33);
+  box-shadow: 0 0 0 2px ${alpha(accent, "55")};
 }
 
 .card.delete-pending {
-  border-color: rgba(255, 107, 107, 0.66);
+  border-color: ${alpha(danger, "A8")};
   color: var(--kb-danger);
 }
 
@@ -208,7 +245,7 @@ html, body {
   display: flex;
   justify-content: space-between;
   padding: 4px 0;
-  border-bottom: 1px solid rgba(107, 108, 116, 0.18);
+  border-bottom: 1px solid ${alpha(fg4, "2E")};
 }
 
 .command-footer {
@@ -249,3 +286,4 @@ html, body {
   color: var(--kb-fg4);
 }
 `;
+}

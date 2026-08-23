@@ -37,6 +37,10 @@ dist/
 /dist/
 */dist/
 **/dist/
+dist-backend/
+/dist-backend/
+*/dist-backend/
+**/dist-backend/
 /build/
 /out/
 /.next/
