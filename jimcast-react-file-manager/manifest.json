@@ -1,0 +1,7 @@
+{
+  "name": "jimcast-react-file-manager",
+  "displayName": "FILE EXPLORER",
+  "version": "1.0.0",
+  "entry": "dist/index.html",
+  "capabilities": ["shell", "fs:read"]
+}

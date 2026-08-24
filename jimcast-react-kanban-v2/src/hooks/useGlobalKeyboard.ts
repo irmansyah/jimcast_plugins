@@ -1,3 +1,5 @@
+// [plugins] jimcast-react-kanban-v2/src/hooks/useGlobalKeyboard.ts
+
 import { useEffect } from "react";
 import { resolveAction, type Keymap } from "../domain/keymap";
 import type { KanbanWorkspace } from "./useKanbanWorkspace";

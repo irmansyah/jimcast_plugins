@@ -1,3 +1,5 @@
+// [plugins] jimcast-react-kanban-v2/src/components/TopBar.tsx
+
 import type { KanbanWorkspace } from "../hooks/useKanbanWorkspace";
 
 export function TopBar({ workspace, onShowHelp }: { workspace: KanbanWorkspace; onShowHelp: () => void }) {

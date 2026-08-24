@@ -1,0 +1,26 @@
+{
+  "name": "jimcast-react-file-manager",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist-backend/backend.cjs",
+  "scripts": {
+    "build:ui": "vite build",
+    "build:backend": "node esbuild.backend.js",
+    "build": "npm run build:ui && npm run build:backend"
+  },
+  "dependencies": {
+    "@jimcast/react-sdk": "file:../../jimcast-sdk/packages/react-sdk",
+    "@jimcast/protocol": "file:../../jimcast-sdk/packages/protocol",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.0",
+    "vite": "^5.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "typescript": "^5.4.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0"
+  }
+}

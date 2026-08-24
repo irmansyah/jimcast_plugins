@@ -1,3 +1,5 @@
+// [plugins] jimcast-react-kanban-v2/src/components/CardModal.tsx
+//
 import { useState } from "react";
 import type { KanbanWorkspace } from "../hooks/useKanbanWorkspace";
 

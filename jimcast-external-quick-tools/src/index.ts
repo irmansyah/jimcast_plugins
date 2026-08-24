@@ -273,12 +273,12 @@ const restApisExpandableChilds = QUICK_TOOLS.map((tool) => ({
 
 const externalQuickToolsWidget = createWidget<true>({
   id: "jimcast-external-quick-tools.widget.external-quick-tools",
-  showIn: ["default"],
   section: {
     titleShow: false,
     navigationActive: false,
     querySearchActive: false,
   },
+  showIn: ["default"],
   expandable: true,
   async render(context: ExecutionContext): Promise<WidgetContent<true>> {
     const { yellow } = context.host.theme.colors;
