@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/domain/selectionLogic.ts
+// jimcast-react-file-manager/src/domain/selectionLogic.ts
 //
 // Extracted from the old FileExplorerPlugin.tsx's handleRowClick /
 // selectAllInColumn / toggleFocusedSelection. Pure functions operating on

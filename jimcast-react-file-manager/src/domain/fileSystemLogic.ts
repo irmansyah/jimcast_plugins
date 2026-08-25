@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/domain/fileSystemLogic.ts
+// jimcast-react-file-manager/src/domain/fileSystemLogic.ts
 //
 // Ported verbatim from the old [core] frontend/src/external-plugins/
 // file-manager/helpers.ts, minus the one function that wasn't pure

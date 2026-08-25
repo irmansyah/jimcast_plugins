@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/App.tsx
+// [plugins] jimcast-react-file-manager/src/App.tsx
 //
 // Mirrors kanban's App.tsx: resolve the theme, build styles from it, mount
 // the shell. Trivial now that useTheme (client), fileExplorerStyles, and

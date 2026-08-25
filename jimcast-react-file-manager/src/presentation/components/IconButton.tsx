@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/presentation/components/IconButton.tsx
+// jimcast-react-file-manager/src/presentation/components/IconButton.tsx
 //
 // Tiny local replacement for the host's ui/Primitives IconButton —
 // unchanged from the original inline version, just given its own file.

@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/styles.ts
+// [plugins] jimcast-react-file-manager/src/styles.ts
 //
 // Deliberately diverges from kanban's styles.ts pattern: kanban's tree is
 // built on CSS classes + one injected <style> string, but
@@ -41,6 +41,13 @@
 // session). If that hasn't landed, these imports need a deep path instead
 // (@jimcast/protocol/themes/theme) — unconfirmed whether the package's
 // exports map even allows that.
+//
+// `root` (added below): the plugin's outer container, previously
+// unstyled (FileExplorerShell.tsx's top-level <div> had no `style` prop
+// at all). Caps the plugin's total height at 500px with its own
+// vertical scroll, independent of columnsRow's fixed 500px column-list
+// height — if the header/breadcrumbs/footer push total content past
+// 500px, the root scrolls rather than the plugin growing unbounded.
 
 import type { CSSProperties } from 'react'
 import type { ThemeContext } from '@jimcast/protocol'
@@ -64,6 +71,12 @@ export function fileExplorerStyles(theme: ThemeContext): Record<string, CSSPrope
   const s = theme.spacing
 
   return {
+    root: {
+      display:       'flex',
+      flexDirection: 'column',
+      maxHeight:     500,
+      overflowY:     'auto',
+    },
     headerRow: {
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     },

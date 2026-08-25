@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/infrastructure/backend.ts
+// jimcast-react-file-manager/src/infrastructure/backend.ts
 //
 // Replaces the old hand-rolled readline/NDJSON dispatch loop with
 // @jimcast/react-sdk/server's defineWebviewBackend, which owns the single

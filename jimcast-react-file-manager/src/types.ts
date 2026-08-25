@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/types.ts
+// jimcast-react-file-manager/src/types.ts
 //
 // Pure types shared across domain/application/infrastructure/components.
 // No SDK or React imports — this file must stay leaf-level.

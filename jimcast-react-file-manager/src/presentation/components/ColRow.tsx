@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/presentation/components/ColRow.tsx
+// jimcast-react-file-manager/src/presentation/components/ColRow.tsx
 //
 // Kept the original's mousedown-then-move-past-threshold drag-arming
 // logic verbatim — firing native drag unconditionally on mousedown would

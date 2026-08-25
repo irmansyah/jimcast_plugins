@@ -1,0 +1,27 @@
+{
+  "name": "jimcast-react-kanban",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist-backend/backend.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node esbuild.backend.js",
+    "build:frontend": "vite build",
+    "build:backend": "node esbuild.backend.js"
+  },
+  "dependencies": {
+    "@jimcast/react-sdk": "file:../../jimcast-sdk/packages/react-sdk",
+    "@jimcast/protocol": "file:../../jimcast-sdk/packages/protocol",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "esbuild": "^0.23.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0"
+  }
+}

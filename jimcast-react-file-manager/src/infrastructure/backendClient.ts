@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/infrastructure/backendClient.ts
+// jimcast-react-file-manager/src/infrastructure/backendClient.ts
 //
 // The single seam through which this plugin's hooks/components talk to
 // the host. Every call that used to go through [core]'s local

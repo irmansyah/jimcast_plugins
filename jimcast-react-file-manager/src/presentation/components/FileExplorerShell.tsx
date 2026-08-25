@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/presentation/components/FileExplorerShell.tsx
+// jimcast-react-file-manager/src/presentation/components/FileExplorerShell.tsx
 //
 // Was the monolithic FileExplorerPlugin.tsx. Now: run the workspace hook,
 // wire up the keyboard and host-nav hooks, render header/breadcrumbs/
@@ -8,12 +8,16 @@
 // one. `styles` is the Record<string, CSSProperties> from
 // fileExplorerStyles(theme), passed down from App.tsx.
 //
-// Passing the full `styles` object into ColRow/Breadcrumbs/CommandFooter
-// (each of which types its `styles` prop as a narrower interface of just
-// the keys it uses) works without a cast: Record<string, CSSProperties>
-// structurally satisfies any interface whose properties are all
-// CSSProperties, since the index signature guarantees each named key is
-// present at that type.
+// NOTE: styles is intentionally typed as the wide Record<string,
+// CSSProperties> at the App.tsx boundary (fileExplorerStyles's return
+// type), but each leaf component (Breadcrumbs/ColRow/CommandFooter)
+// declares a narrower interface listing only the specific keys it uses.
+// A `[key: string]: CSSProperties` index signature does NOT prove those
+// specific named keys exist, so TS correctly rejects passing the wide
+// object directly — an earlier version of this file assumed otherwise
+// and didn't typecheck. Casting via each component's own exported style
+// interface keeps the cast checked against a real shape instead of an
+// unchecked `as any`.
 
 import type { CSSProperties } from 'react'
 import { visibleEntries, entryFullPath } from '../../domain/fileSystemLogic'
@@ -21,9 +25,9 @@ import { useFileExplorerWorkspace } from '../hooks/useFileExplorerWorkspace'
 import { useFileExplorerKeyboard } from '../hooks/useFileExplorerKeyboard'
 import { useFileExplorerNav } from '../hooks/useFileExplorerNav'
 import { IconButton } from './IconButton'
-import { ColRow } from './ColRow'
-import { Breadcrumbs } from './Breadcrumbs'
-import { CommandFooter } from './CommandFooter'
+import { ColRow, type ColRowStyles } from './ColRow'
+import { Breadcrumbs, type BreadcrumbStyles } from './Breadcrumbs'
+import { CommandFooter, type CommandFooterStyles } from './CommandFooter'
 
 export function FileExplorerShell({ styles }: { styles: Record<string, CSSProperties> }) {
   const workspace = useFileExplorerWorkspace()
@@ -39,8 +43,16 @@ export function FileExplorerShell({ styles }: { styles: Record<string, CSSProper
     performRename, performShellCommand,
   } = workspace
 
+  // Widened at the App.tsx boundary, narrowed back per-component here —
+  // see file header. Each cast goes through `unknown` because the wide
+  // Record type and the narrow named-property interface aren't directly
+  // related from TS's point of view.
+  const breadcrumbStyles = styles as unknown as BreadcrumbStyles
+  const colRowStyles = styles as unknown as ColRowStyles
+  const footerStyles = styles as unknown as CommandFooterStyles
+
   return (
-    <div>
+    <div style={styles.root}>
       <div style={styles.headerRow}>
         <div style={styles.title}>File Explorer</div>
         <div style={styles.navBtns}>
@@ -56,7 +68,7 @@ export function FileExplorerShell({ styles }: { styles: Record<string, CSSProper
         </div>
       </div>
 
-      <Breadcrumbs segments={segments} styles={styles} onJump={jumpToCrumb} />
+      <Breadcrumbs segments={segments} styles={breadcrumbStyles} onJump={jumpToCrumb} />
 
       <div style={styles.columnsRow}>
         {columns.map((col, colIndex) => {
@@ -76,7 +88,7 @@ export function FileExplorerShell({ styles }: { styles: Record<string, CSSProper
                     entry={entry}
                     isFocused={isFocused}
                     isMultiSelected={isMultiSelected}
-                    styles={styles}
+                    styles={colRowStyles}
                     onClick={(e) => handleRowClick(colIndex, entry, idx, e)}
                     onDoubleClick={() => handleRowDoubleClick(colIndex, entry)}
                     onDragStart={(rect) => handleRowDragStart(colIndex, entry, rect)}
@@ -94,7 +106,7 @@ export function FileExplorerShell({ styles }: { styles: Record<string, CSSProper
         selectedCount={multiSelected.size}
         renameValue={renameValue}
         shellCommand={shellCommand}
-        styles={styles}
+        styles={footerStyles}
         onRenameChange={setRenameValue}
         onShellChange={setShellCommand}
         onRenameSubmit={() => { void performRename() }}

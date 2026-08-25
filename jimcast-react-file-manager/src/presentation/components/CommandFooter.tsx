@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/presentation/components/CommandFooter.tsx
+// jimcast-react-file-manager/src/presentation/components/CommandFooter.tsx
 //
 // The four footerMode-conditional blocks from the bottom of the original
 // component, unchanged — hint (keyboard shortcut reminders),

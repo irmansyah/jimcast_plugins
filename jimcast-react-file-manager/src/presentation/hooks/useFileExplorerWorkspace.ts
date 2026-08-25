@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/presentation/hooks/useFileExplorerWorkspace.ts
+// jimcast-react-file-manager/src/presentation/hooks/useFileExplorerWorkspace.ts
 //
 // The central state hook — mirrors kanban's useKanbanWorkspace.ts. Owns
 // every piece of state the old monolithic FileExplorerPlugin.tsx had
@@ -10,11 +10,18 @@
 // is a straight port of the original's useCallback bodies, just now
 // delegating the actual work to domain/ (pure) or application/
 // (side-effecting orchestration) instead of inlining it.
+//
+// moveFocus/activateFocused were lifted in from useFileExplorerNav.ts so
+// there's a single source of truth for "what does up/down/left/right/
+// activate mean" — both the host's arrow-key protocol (useFileExplorerNav)
+// and vim hjkl (useFileExplorerKeyboard, gated on config.json's
+// keybindings.mode) now call the same two functions instead of each
+// hook maintaining its own copy of the focus-movement logic.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import type { ColumnData, FileEntry, FooterMode, SelectionAnchor } from '../../types'
-import { basename, buildPath, entryFullPath } from '../../domain/fileSystemLogic'
+import { basename, buildPath, entryFullPath, visibleEntries } from '../../domain/fileSystemLogic'
 import {
   toggleSelection,
   rangeSelect,
@@ -234,6 +241,44 @@ export function useFileExplorerWorkspace() {
     setRefreshTick(t => t + 1)
   }, [shellCommand])
 
+  // Single source of truth for arrow-style focus movement in the last
+  // (deepest) column — shared by useFileExplorerNav (host arrow-key
+  // protocol) and useFileExplorerKeyboard (vim hjkl, gated on config.json's
+  // keybindings.mode). Extracted verbatim from what used to be
+  // useFileExplorerNav's onArrow closure.
+  const moveFocus = useCallback((dir: 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight') => {
+    const cols = columnsRef.current
+    const lastCol = cols[cols.length - 1]
+    if (!lastCol || lastCol.loading || lastCol.error) return
+    const visible = visibleEntries(lastCol, cols.length - 1, showHiddenRef.current)
+    const total = visible.length
+    if (dir === 'ArrowDown') { if (total) setFocusedIndex(i => Math.min(i + 1, total - 1)); return }
+    if (dir === 'ArrowUp') { if (total) setFocusedIndex(i => Math.max(i - 1, 0)); return }
+    if (dir === 'ArrowLeft') { goUp(); return }
+    if (dir === 'ArrowRight') {
+      const entry = visible[focusedIndexRef.current]
+      if (entry?.isDir) openEntry(cols.length - 1, entry)
+      return
+    }
+  }, [goUp, openEntry])
+
+  // Single source of truth for "activate the focused/selected entr(y/ies)"
+  // — Enter on the host side, and Enter/"l"-on-a-file in vim mode.
+  // Extracted verbatim from what used to be useFileExplorerNav's
+  // onActivate closure.
+  const activateFocused = useCallback(() => {
+    const selected = multiSelectedRef.current
+    if (selected.size > 0) {
+      openSelection(Array.from(selected))
+      return
+    }
+    const cols = columnsRef.current
+    const lastCol = cols[cols.length - 1]
+    const visible = lastCol ? visibleEntries(lastCol, cols.length - 1, showHiddenRef.current) : []
+    const entry = visible[focusedIndexRef.current]
+    if (entry) openEntry(cols.length - 1, entry)
+  }, [openEntry])
+
   return {
     // state
     homeDir, segments, columns, showHidden, focusedIndex, multiSelected,
@@ -250,6 +295,7 @@ export function useFileExplorerWorkspace() {
     handleRowClick, handleRowDoubleClick, handleRowDragStart,
     toggleFocusedSelection, selectAllInColumn, copySelectedPaths, clearSelection,
     performDelete, performRename, performShellCommand,
+    moveFocus, activateFocused,
   }
 }
 

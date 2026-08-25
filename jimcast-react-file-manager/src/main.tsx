@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/main.tsx
+// jimcast-react-file-manager/src/main.tsx
 //
 // Standard Vite+React entry point — was missing entirely. App.tsx existed
 // but nothing ever called ReactDOM's createRoot/render on it.

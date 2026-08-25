@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/presentation/components/Breadcrumbs.tsx
+// jimcast-react-file-manager/src/presentation/components/Breadcrumbs.tsx
 
 import type { CSSProperties } from 'react'
 import { basename } from '../../domain/fileSystemLogic'

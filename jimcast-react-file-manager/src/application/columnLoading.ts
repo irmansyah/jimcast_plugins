@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/application/columnLoading.ts
+// jimcast-react-file-manager/src/application/columnLoading.ts
 //
 // Composes infrastructure/backendClient.ts (shellExec) with
 // domain/fileSystemLogic.ts (parseLsEntries, buildPath, resolveHome) into

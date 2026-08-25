@@ -1,4 +1,4 @@
-// jimcast-plugins/jimcast-external-file-manager/src/application/fileOpening.ts
+// jimcast-react-file-manager/src/application/fileOpening.ts
 //
 // The "open these path(s)" decision the original component repeated at
 // three call sites (openEntry's non-directory branch, handleRowDoubleClick,
