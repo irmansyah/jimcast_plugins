@@ -1,4 +1,4 @@
-// jimcast-react-kanban/src/domain/commands/boardCommands.ts
+// [plugins] jimcast-react-kanban/src/domain/commands/boardCommands.ts
 //
 // Split out of the old monolithic kanbanCommands.ts (Phase A #3). Board-level
 // :list-boards/:new-board/:delete-board/:board only — unchanged behavior

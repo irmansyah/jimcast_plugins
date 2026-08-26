@@ -76,6 +76,7 @@ export function fileExplorerStyles(theme: ThemeContext): Record<string, CSSPrope
       flexDirection: 'column',
       maxHeight:     500,
       overflowY:     'auto',
+      fontFamily:     t.family,
     },
     headerRow: {
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',

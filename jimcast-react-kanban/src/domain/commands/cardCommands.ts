@@ -1,4 +1,4 @@
-// jimcast-react-kanban/src/domain/commands/cardCommands.ts
+// [plugins] jimcast-react-kanban/src/domain/commands/cardCommands.ts
 //
 // new/delete/move/rename carried over unchanged from the old monolithic
 // kanbanCommands.ts (Phase A #3 split). archive/unarchive/archived are new

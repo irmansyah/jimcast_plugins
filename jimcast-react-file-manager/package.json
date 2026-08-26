@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist-backend/backend.cjs",
   "scripts": {
+    "dev": "vite",
     "build:ui": "vite build",
     "build:backend": "node esbuild.backend.js",
     "build": "npm run build:ui && npm run build:backend"

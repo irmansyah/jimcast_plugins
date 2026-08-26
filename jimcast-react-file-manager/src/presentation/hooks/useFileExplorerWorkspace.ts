@@ -279,6 +279,32 @@ export function useFileExplorerWorkspace() {
     if (entry) openEntry(cols.length - 1, entry)
   }, [openEntry])
 
+  const selectEntry = useCallback((idx: number) => {
+    const cols = columnsRef.current
+    const lastCol = cols[cols.length - 1]
+    if (!lastCol || lastCol.loading || lastCol.error) return false
+    const visible = visibleEntries(lastCol, cols.length - 1, showHiddenRef.current)
+    const entry = visible[idx]
+    if (!entry) return false
+    const fullPath = entryFullPath(segmentsRef.current.slice(0, cols.length), entry.name, homeDirRef.current)
+    setFocusedIndex(idx)
+    setMultiSelected(new Set([fullPath]))
+    anchorRef.current = { colIndex: cols.length - 1, idx }
+    return true
+  }, [])
+
+  const performRenameWith = useCallback(async (oldPath: string, newName: string) => {
+    const newPath = await renameFile(oldPath, newName)
+    setMultiSelected(new Set([newPath]))
+    setRefreshTick(t => t + 1)
+    return newPath
+  }, [])
+
+  const performShellCommandWith = useCallback(async (cmd: string, paths: string[]) => {
+    await runShellCommand(cmd, paths)
+    setRefreshTick(t => t + 1)
+  }, [])
+
   return {
     // state
     homeDir, segments, columns, showHidden, focusedIndex, multiSelected,
@@ -296,6 +322,7 @@ export function useFileExplorerWorkspace() {
     toggleFocusedSelection, selectAllInColumn, copySelectedPaths, clearSelection,
     performDelete, performRename, performShellCommand,
     moveFocus, activateFocused,
+    selectEntry, performRenameWith, performShellCommandWith
   }
 }
 

@@ -1,4 +1,4 @@
-// jimcast-react-kanban/src/domain/kanbanCommands.ts
+// [plugins] jimcast-react-kanban/src/domain/kanbanCommands.ts
 //
 // Phase A #3: this used to be one flat ~250-line function. Now it just
 // composes the four split-out modules in domain/commands/. Behavior for

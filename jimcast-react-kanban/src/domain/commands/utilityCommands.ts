@@ -1,4 +1,4 @@
-// jimcast-react-kanban/src/domain/commands/utilityCommands.ts
+// [plugins] jimcast-react-kanban/src/domain/commands/utilityCommands.ts
 //
 // New for Phase A: :search/:clear-search wire up the previously-dead
 // searchActive/searchQuery state (set by focusSearch()/`/` but never read

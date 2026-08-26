@@ -1,4 +1,4 @@
-// jimcast-react-kanban/src/domain/keymap.ts
+// [plugins] jimcast-react-kanban/src/domain/keymap.ts
 //
 // Loads public/config.json (copied to dist/config.json unmodified by
 // Vite, served through the same jimcast-plugin://<plugin>/ protocol that

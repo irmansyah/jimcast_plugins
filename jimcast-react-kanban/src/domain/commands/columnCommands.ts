@@ -1,4 +1,4 @@
-// jimcast-react-kanban/src/domain/commands/columnCommands.ts
+// [plugins] jimcast-react-kanban/src/domain/commands/columnCommands.ts
 //
 // New for Phase A #2: columns were previously fixed to DEFAULT_COLUMNS with
 // no way to add/rename/reorder/delete one, webview OR CLI. `:focus` moved
