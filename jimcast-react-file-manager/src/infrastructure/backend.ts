@@ -18,6 +18,19 @@
 // dispatch table, so there's nothing to gain from it yet. Worth revisiting
 // if the host ever wants to auto-discover this plugin's commands via
 // LIST_COMMANDS_ID without a manifest field.
+//
+// isAvFile -> isVideoFile rename: fileSystemLogic.ts split its old
+// AV_EXT (audio+video) into VIDEO_EXT only, now that audio opens through
+// the host's in-app popup viewer (via openFiles, a host-UI-only call
+// intercepted in QuickToolExternalWebview.tsx — never reaches this
+// process) instead of the OS system player. openFile below is
+// unchanged — it's the single-video-file system-player path, called
+// only when fileOpening.ts's isVideoFile check matches.
+//
+// NOTE: if anything else in this codebase still calls
+// callHost('isAvFile', ...) expecting audio to also report true, that
+// call site needs to move to the openFiles/viewer path instead — this
+// handler's semantics changed from "is this AV" to "is this video".
 
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -28,7 +41,7 @@ import {
   buildPath,
   entryFullPath,
   visibleEntries,
-  isAvFile,
+  isVideoFile,
   truncateMiddle,
   ALLOW_DIRECTORIES,
 } from '../domain/fileSystemLogic'
@@ -81,14 +94,14 @@ defineWebviewBackend({
     path: entryFullPath(args.segments, args.name, args.homeDir ?? null),
   }),
 
-  // args: { path: string }
+  // args: { path: string } — video-only now; see file header.
   openFile: async (args: any) => {
     await openWithSystemPlayer(args.path)
     return {}
   },
 
-  // args: { name: string }
-  isAvFile: async (args: any) => ({ isAv: isAvFile(args.name) }),
+  // args: { name: string } — renamed from isAvFile; video-only now.
+  isVideoFile: async (args: any) => ({ isVideo: isVideoFile(args.name) }),
 
   // Roots shown at column 0 — mirrors domain/fileSystemLogic.ts's
   // ALLOW_DIRECTORIES so the webview doesn't need its own copy.

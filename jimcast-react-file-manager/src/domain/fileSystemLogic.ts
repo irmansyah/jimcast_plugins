@@ -7,7 +7,6 @@
 // from React, the SDK, or Node — unit-testable in isolation, and safe to
 // import from infrastructure/, hooks/, or components/ without pulling in
 // any host-call machinery.
-
 import type { ColumnData, FileEntry } from '../types'
 
 export const ALLOW_DIRECTORIES = [
@@ -20,11 +19,14 @@ export const ALLOW_DIRECTORIES = [
 ]
 export const ALLOWED_ROOT_NAMES = new Set(ALLOW_DIRECTORIES.map(d => d.replace(/^~\//, '')))
 
-// Audio/video extensions that get handed off to the OS's default player
-// rather than previewed in-app.
-export const AV_EXT = new Set([
-  'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'opus',              // audio
-  'mp4', 'mov', 'mkv', 'avi', 'webm', 'm4v', '3gp', 'wmv', 'flv',  // video
+// Video extensions only — these still get handed off to the OS's default
+// player rather than opened in-app. Audio used to be bundled in here too
+// (as AV_EXT/isAvFile), but audio now opens through the in-app popup
+// viewer (core's WidgetFileViewer, via openFiles) same as images/text,
+// since that viewer supports an 'audio' kind. Video has no viewer support
+// yet, so it keeps the direct system-player path.
+export const VIDEO_EXT = new Set([
+  'mp4', 'mov', 'mkv', 'avi', 'webm', 'm4v', '3gp', 'wmv', 'flv',
 ])
 
 function lines(stdout: string): string[] {
@@ -71,9 +73,9 @@ export function visibleEntries(col: ColumnData, colIndex: number, showHidden: bo
   return entries
 }
 
-export function isAvFile(name: string): boolean {
+export function isVideoFile(name: string): boolean {
   const dot = name.lastIndexOf('.')
-  return dot > 0 && AV_EXT.has(name.slice(dot + 1).toLowerCase())
+  return dot > 0 && VIDEO_EXT.has(name.slice(dot + 1).toLowerCase())
 }
 
 // Middle-truncates a long file/dir name so the tail (usually the most
