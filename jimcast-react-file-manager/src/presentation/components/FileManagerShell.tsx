@@ -1,15 +1,15 @@
-// jimcast-react-file-manager/src/presentation/components/FileExplorerShell.tsx
+// jimcast-react-file-manager/src/presentation/components/FileManagerShell.tsx
 //
-// Was the monolithic FileExplorerPlugin.tsx. Now: run the workspace hook,
+// Was the monolithic FileManagerPlugin.tsx. Now: run the workspace hook,
 // wire up the keyboard and host-nav hooks, render header/breadcrumbs/
 // columns/footer using the pieces split into IconButton/ColRow/
 // Breadcrumbs/CommandFooter. No business logic lives here — every
 // callback is either a workspace action or a thin JSX-event adapter over
 // one. `styles` is the Record<string, CSSProperties> from
-// fileExplorerStyles(theme), passed down from App.tsx.
+// fileManagerStyles(theme), passed down from App.tsx.
 //
 // NOTE: styles is intentionally typed as the wide Record<string,
-// CSSProperties> at the App.tsx boundary (fileExplorerStyles's return
+// CSSProperties> at the App.tsx boundary (fileManagerStyles's return
 // type), but each leaf component (Breadcrumbs/ColRow/CommandFooter)
 // declares a narrower interface listing only the specific keys it uses.
 // A `[key: string]: CSSProperties` index signature does NOT prove those
@@ -18,21 +18,31 @@
 // and didn't typecheck. Casting via each component's own exported style
 // interface keeps the cast checked against a real shape instead of an
 // unchecked `as any`.
+//
+// Drag/focus reporting: ColRow only hands back a DOMRect, plus which
+// column/index/entry it belongs to via the closure below — it has no
+// idea what "this row's path" or "is this row part of the current
+// selection" mean. That's workspace state, so handleRowDragStart /
+// reportRowFocus (both owned by useFileManagerWorkspace) resolve the
+// fullPath and decide internally whether to drag just this row or the
+// whole multi-selection. This shell never imports backendClient
+// directly — same one-seam rule the header comment on backendClient.ts
+// describes.
 
 import type { CSSProperties } from 'react'
 import { visibleEntries, entryFullPath } from '../../domain/fileSystemLogic'
-import { useFileExplorerWorkspace } from '../hooks/useFileExplorerWorkspace'
-import { useFileExplorerKeyboard } from '../hooks/useFileExplorerKeyboard'
-import { useFileExplorerNav } from '../hooks/useFileExplorerNav'
+import { useFileManagerWorkspace } from '../hooks/useFileManagerWorkspace'
+import { useFileManagerKeyboard } from '../hooks/useFileManagerKeyboard'
+import { useFileManagerNav } from '../hooks/useFileManagerNav'
 import { IconButton } from './IconButton'
 import { ColRow, type ColRowStyles } from './ColRow'
 import { Breadcrumbs, type BreadcrumbStyles } from './Breadcrumbs'
 import { CommandFooter, type CommandFooterStyles } from './CommandFooter'
 
-export function FileExplorerShell({ styles }: { styles: Record<string, CSSProperties> }) {
-  const workspace = useFileExplorerWorkspace()
-  useFileExplorerKeyboard(workspace)
-  useFileExplorerNav(workspace)
+export function FileManagerShell({ styles }: { styles: Record<string, CSSProperties> }) {
+  const workspace = useFileManagerWorkspace()
+  useFileManagerKeyboard(workspace)
+  useFileManagerNav(workspace)
 
   const {
     homeDir, segments, columns, showHidden, focusedIndex, multiSelected,
@@ -54,7 +64,7 @@ export function FileExplorerShell({ styles }: { styles: Record<string, CSSProper
   return (
     <div style={styles.root}>
       <div style={styles.headerRow}>
-        <div style={styles.title}>File Explorer</div>
+        <div style={styles.title}>File Manager</div>
         <div style={styles.navBtns}>
           {multiSelected.size > 0 && (
             <>
@@ -84,7 +94,7 @@ export function FileExplorerShell({ styles }: { styles: Record<string, CSSProper
                 const isMultiSelected = !entry.isDir && multiSelected.has(fullPath)
                 return (
                   <ColRow
-                    key={entry.name}
+                    key={fullPath}
                     entry={entry}
                     isFocused={isFocused}
                     isMultiSelected={isMultiSelected}

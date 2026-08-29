@@ -4,7 +4,7 @@
 // component, unchanged — hint (keyboard shortcut reminders),
 // confirm-delete, rename (inline form), shell (inline form, {} placeholder
 // hint). Escape inside either form is handled locally here (onKeyDown),
-// same as the original — the global keyboard hook (useFileExplorerKeyboard)
+// same as the original — the global keyboard hook (useFileManagerKeyboard)
 // explicitly ignores keydowns while focus is in an <input>/<textarea>, so
 // this is the only place Escape-while-typing is caught.
 

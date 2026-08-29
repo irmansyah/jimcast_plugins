@@ -1,7 +1,7 @@
-// jimcast-react-file-manager/src/presentation/hooks/useFileExplorerWorkspace.ts
+// [plugins] jimcast-react-file-manager/src/presentation/hooks/useFileManagerWorkspace.ts
 //
 // The central state hook — mirrors kanban's useKanbanWorkspace.ts. Owns
-// every piece of state the old monolithic FileExplorerPlugin.tsx had
+// every piece of state the old monolithic FileManagerPlugin.tsx had
 // (homeDir, segments, columns, showHidden, focusedIndex, multiSelected,
 // footerMode, renameValue, shellCommand, refreshTick) plus the ref-mirror
 // pattern the original used so the keyboard/nav effects — which subscribe
@@ -11,13 +11,21 @@
 // delegating the actual work to domain/ (pure) or application/
 // (side-effecting orchestration) instead of inlining it.
 //
-// moveFocus/activateFocused were lifted in from useFileExplorerNav.ts so
+// moveFocus/activateFocused were lifted in from useFileManagerNav.ts so
 // there's a single source of truth for "what does up/down/left/right/
-// activate mean" — both the host's arrow-key protocol (useFileExplorerNav)
-// and vim hjkl (useFileExplorerKeyboard, gated on config.json's
+// activate mean" — both the host's arrow-key protocol (useFileManagerNav)
+// and vim hjkl (useFileManagerKeyboard, gated on config.json's
 // keybindings.mode) now call the same two functions instead of each
 // hook maintaining its own copy of the focus-movement logic.
-
+//
+// onSelectionChange: optional callback fired whenever multiSelected
+// changes, given the current list of selected paths. Added so a
+// consumer (App.tsx, or a host integration) can react to selection
+// without reaching into workspace.multiSelected itself. NOTE: the call
+// site in App.tsx hasn't been confirmed yet — if useFileManagerWorkspace
+// is invoked with zero args there today, this param is additive/optional
+// and safe, but App.tsx needs updating to actually pass a callback for
+// this to do anything.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import type { ColumnData, FileEntry, FooterMode, SelectionAnchor } from '../../types'
@@ -26,14 +34,16 @@ import {
   toggleSelection,
   rangeSelect,
   selectAllFilesInColumn,
+  selectMatchingFilesInColumn,
   toggleFocusedSelection as domainToggleFocusedSelection,
 } from '../../domain/selectionLogic'
 import { loadHomeDir, loadColumns } from '../../application/columnLoading'
 import { deleteFiles, renameFile, runShellCommand } from '../../application/fileOperations'
 import { openSelection } from '../../application/fileOpening'
 import { reportFocusedItem, reportDragStarted, startDrag } from '../../infrastructure/backendClient'
+import { useHostStorage } from '@jimcast/react-sdk/client'  // exact hook shape TBD, see below
 
-export function useFileExplorerWorkspace() {
+export function useFileManagerWorkspace(onSelectionChange?: (paths: string[]) => void) {
   const [homeDir, setHomeDir] = useState<string | null>(null)
   const [segments, setSegments] = useState<string[]>(['~'])
   const [columns, setColumns] = useState<ColumnData[]>([])
@@ -44,6 +54,8 @@ export function useFileExplorerWorkspace() {
   const [renameValue, setRenameValue] = useState('')
   const [shellCommand, setShellCommand] = useState('')
   const [refreshTick, setRefreshTick] = useState(0)
+
+  const storage = useHostStorage()
 
   useEffect(() => {
     loadHomeDir().then(setHomeDir)
@@ -82,6 +94,20 @@ export function useFileExplorerWorkspace() {
 
   useEffect(() => {
     if (multiSelected.size === 0) setFooterMode('hint')
+  }, [multiSelected])
+
+  // Reports the current selection out to whoever's listening, any time
+  // it changes — mirrors the reportFocusedItem/reportDragStarted pattern
+  // below (host-facing side effects live in an effect keyed off state,
+  // not inlined into every setter that touches multiSelected).
+  useEffect(() => {
+    onSelectionChange?.(Array.from(multiSelected))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [multiSelected])
+
+  useEffect(() => {
+    storage.set('multiSelected', JSON.stringify(Array.from(multiSelected))).catch(() => {})
+    onSelectionChange?.(Array.from(multiSelected))
   }, [multiSelected])
 
   const anchorRef = useRef<SelectionAnchor | null>(null)
@@ -172,7 +198,11 @@ export function useFileExplorerWorkspace() {
 
     const paths = Array.from(selected)
     reportDragStarted(paths, { x: rect.x, y: rect.y, width: rect.width, height: rect.height })
-    startDrag(paths, false)
+    // startDrag(paths, false) — removed: dead path, routed through
+    // callHost('startDrag', ...) which has no matching command in
+    // backend.cjs. reportDragStarted above is the real mechanism —
+    // [core]'s QuickToolExternalWebview.tsx now calls
+    // startNativeFileDrag on receipt of the dragStarted event.
   }, [])
 
   const toggleFocusedSelection = useCallback(() => {
@@ -195,6 +225,23 @@ export function useFileExplorerWorkspace() {
     setMultiSelected(prev => selectAllFilesInColumn(
       lastCol, cols.length - 1, showHiddenRef.current, segmentsRef.current, homeDirRef.current, prev,
     ))
+  }, [])
+
+  // "select-match <glob>" — merges every non-directory match in the last
+  // column into the current selection. Returns the match count so the
+  // command layer can report "0 matches" vs "selected N" without
+  // re-deriving it from multiSelected (which may already have had other
+  // paths in it before this call).
+  const selectMatchingInColumn = useCallback((pattern: string) => {
+    const cols = columnsRef.current
+    const lastCol = cols[cols.length - 1]
+    if (!lastCol || lastCol.loading || lastCol.error) return 0
+    const result = selectMatchingFilesInColumn(
+      lastCol, cols.length - 1, pattern, showHiddenRef.current,
+      segmentsRef.current, homeDirRef.current, multiSelectedRef.current,
+    )
+    setMultiSelected(result.next)
+    return result.matchCount
   }, [])
 
   const copySelectedPaths = useCallback(() => {
@@ -242,10 +289,10 @@ export function useFileExplorerWorkspace() {
   }, [shellCommand])
 
   // Single source of truth for arrow-style focus movement in the last
-  // (deepest) column — shared by useFileExplorerNav (host arrow-key
-  // protocol) and useFileExplorerKeyboard (vim hjkl, gated on config.json's
+  // (deepest) column — shared by useFileManagerNav (host arrow-key
+  // protocol) and useFileManagerKeyboard (vim hjkl, gated on config.json's
   // keybindings.mode). Extracted verbatim from what used to be
-  // useFileExplorerNav's onArrow closure.
+  // useFileManagerNav's onArrow closure.
   const moveFocus = useCallback((dir: 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight') => {
     const cols = columnsRef.current
     const lastCol = cols[cols.length - 1]
@@ -264,7 +311,7 @@ export function useFileExplorerWorkspace() {
 
   // Single source of truth for "activate the focused/selected entr(y/ies)"
   // — Enter on the host side, and Enter/"l"-on-a-file in vim mode.
-  // Extracted verbatim from what used to be useFileExplorerNav's
+  // Extracted verbatim from what used to be useFileManagerNav's
   // onActivate closure.
   const activateFocused = useCallback(() => {
     const selected = multiSelectedRef.current
@@ -293,6 +340,17 @@ export function useFileExplorerWorkspace() {
     return true
   }, [])
 
+  // Selects an explicit list of paths (not resolved against the loaded
+  // column model — used for "open by path" style commands) AND opens
+  // them immediately. Unlike selectEntry, this does not touch
+  // focusedIndex or anchorRef, since the paths may not correspond to any
+  // visible row in the current column.
+  const selectAndOpenPaths = useCallback((paths: string[]) => {
+    if (paths.length === 0) return
+    setMultiSelected(new Set(paths))
+    openSelection(paths)
+  }, [])
+
   const performRenameWith = useCallback(async (oldPath: string, newName: string) => {
     const newPath = await renameFile(oldPath, newName)
     setMultiSelected(new Set([newPath]))
@@ -309,7 +367,7 @@ export function useFileExplorerWorkspace() {
     // state
     homeDir, segments, columns, showHidden, focusedIndex, multiSelected,
     footerMode, renameValue, shellCommand,
-    // refs — exposed for useFileExplorerKeyboard / useFileExplorerNav,
+    // refs — exposed for useFileManagerKeyboard / useFileManagerNav,
     // which subscribe once and need latest-value access outside React's
     // render cycle, same reason the original component kept them as refs.
     columnsRef, focusedIndexRef, showHiddenRef, multiSelectedRef,
@@ -319,11 +377,11 @@ export function useFileExplorerWorkspace() {
     // actions
     openEntry, goUp, jumpToCrumb, reportRowFocus,
     handleRowClick, handleRowDoubleClick, handleRowDragStart,
-    toggleFocusedSelection, selectAllInColumn, copySelectedPaths, clearSelection,
+    toggleFocusedSelection, selectAllInColumn, selectMatchingInColumn, copySelectedPaths, clearSelection,
     performDelete, performRename, performShellCommand,
     moveFocus, activateFocused,
-    selectEntry, performRenameWith, performShellCommandWith
+    selectEntry, selectAndOpenPaths, performRenameWith, performShellCommandWith
   }
 }
 
-export type FileExplorerWorkspace = ReturnType<typeof useFileExplorerWorkspace>
+export type FileManagerWorkspace = ReturnType<typeof useFileManagerWorkspace>

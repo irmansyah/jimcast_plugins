@@ -1,6 +1,6 @@
-// jimcast-react-file-manager/src/domain/selectionLogic.ts
+// [plugins] jimcast-react-file-manager/src/domain/selectionLogic.ts
 //
-// Extracted from the old FileExplorerPlugin.tsx's handleRowClick /
+// Extracted from the old FileManagerPlugin.tsx's handleRowClick /
 // selectAllInColumn / toggleFocusedSelection. Pure functions operating on
 // a Set<string> of full paths — no state, no React, no SDK. The
 // component/hook layer owns the actual useState<Set<string>> and calls
@@ -92,4 +92,32 @@ export function toggleFocusedSelection(
     next:   toggleSelection(current, fullPath),
     anchor: { colIndex, idx: focusedIdx },
   }
+}
+
+// Selects every file (not directory) in the given column whose name
+// matches a glob pattern (* and ? only, translated to regex — ls-style
+// globbing, not full minimatch). Merges into the current selection,
+// same semantics as selectAllFilesInColumn.
+function globToRegExp(glob: string): RegExp {
+  const escaped = glob
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*/g, '.*')
+    .replace(/\?/g, '.')
+  return new RegExp(`^${escaped}$`)
+}
+
+export function selectMatchingFilesInColumn(
+  col:        ColumnData,
+  colIndex:   number,
+  pattern:    string,
+  showHidden: boolean,
+  segments:   string[],
+  homeDir:    string | null,
+  current:    Set<string>,
+): { next: Set<string>; matchCount: number } {
+  const regex = globToRegExp(pattern)
+  const visible = visibleEntries(col, colIndex, showHidden)
+  const matches = visible.filter(e => !e.isDir && regex.test(e.name))
+  const paths = matches.map(e => entryFullPath(segments.slice(0, colIndex + 1), e.name, homeDir))
+  return { next: new Set([...current, ...paths]), matchCount: paths.length }
 }

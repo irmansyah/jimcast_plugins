@@ -1,16 +1,16 @@
-// src/domain/commands/navigationCommands.ts
+// [plugins] jimcast-react-file-manager/src/domain/commands/navigationCommands.ts
 //
 // Only what the real workspace supports: goUp() and jumpToCrumb(colIndex).
 // There's no arbitrary-path navigateTo — jumpToCrumb(0) doubles as "home"
 // since segments always starts with '~'.
 
 import type { CommandLineRegistry, Feedback } from "@jimcast/react-sdk/react";
-import type { FileExplorerWorkspace } from "../../presentation/hooks/useFileExplorerWorkspace";
+import type { FileManagerWorkspace } from "../../presentation/hooks/useFileManagerWorkspace";
 import { resolveEntryTarget } from "./resolveEntryTarget";
 
 export function buildNavigationCommands(
-  workspace: FileExplorerWorkspace,
-  notify: (f: Feedback) => void,
+  workspace: FileManagerWorkspace,
+  _notify: (f: Feedback) => void,
 ): CommandLineRegistry {
   return [
     {

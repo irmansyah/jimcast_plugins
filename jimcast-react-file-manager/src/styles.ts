@@ -2,7 +2,7 @@
 //
 // Deliberately diverges from kanban's styles.ts pattern: kanban's tree is
 // built on CSS classes + one injected <style> string, but
-// FileExplorerPlugin.tsx uses React.CSSProperties objects passed directly
+// FileManagerPlugin.tsx uses React.CSSProperties objects passed directly
 // as `style={...}` props throughout (e.g. `style={styles.crumb}`).
 // Converting the component to class-based styling too is out of scope for
 // this migration — the goal is the SDK swap + architecture split, not a
@@ -43,7 +43,7 @@
 // exports map even allows that.
 //
 // `root` (added below): the plugin's outer container, previously
-// unstyled (FileExplorerShell.tsx's top-level <div> had no `style` prop
+// unstyled (FileManagerShell.tsx's top-level <div> had no `style` prop
 // at all). Caps the plugin's total height at 500px with its own
 // vertical scroll, independent of columnsRow's fixed 500px column-list
 // height — if the header/breadcrumbs/footer push total content past
@@ -65,7 +65,7 @@ function hairline(hex: string): string {
   return `1px solid ${hex}`
 }
 
-export function fileExplorerStyles(theme: ThemeContext): Record<string, CSSProperties> {
+export function fileManagerStyles(theme: ThemeContext): Record<string, CSSProperties> {
   const c = theme.colors
   const t = theme.typography
   const s = theme.spacing

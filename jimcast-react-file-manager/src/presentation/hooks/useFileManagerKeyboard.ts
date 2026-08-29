@@ -1,10 +1,10 @@
-// jimcast-react-file-manager/src/presentation/hooks/useFileExplorerKeyboard.ts
+// jimcast-react-file-manager/src/presentation/hooks/useFileManagerKeyboard.ts
 //
 // The global keydown handler from the old component (window-level, not
 // tied to any one row) — extracted verbatim, plus two additions:
 //
 // 1. Native ArrowUp/Down/Left/Right + Enter handling, calling the same
-//    workspace.moveFocus/activateFocused that useFileExplorerNav.ts's
+//    workspace.moveFocus/activateFocused that useFileManagerNav.ts's
 //    useHostNav wiring calls. useHostNav only fires when an actual host
 //    is connected and forwarding nav events over its wire protocol — it
 //    does NOT listen to window keydown itself. Without this block,
@@ -21,7 +21,7 @@
 // CommandFooter's onKeyDown), and the confirm-delete state intercepts
 // everything except d/y/Escape while active.
 import { useEffect } from 'react'
-import type { FileExplorerWorkspace } from './useFileExplorerWorkspace'
+import type { FileManagerWorkspace } from './useFileManagerWorkspace'
 import { basename, visibleEntries } from '../../domain/fileSystemLogic'
 import { keybindingMode } from '../../config'
 
@@ -35,7 +35,7 @@ const VIM_DIRECTIONS: Record<string, 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'Ar
 const NATIVE_ARROWS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'] as const
 type NativeArrow = typeof NATIVE_ARROWS[number]
 
-export function useFileExplorerKeyboard(workspace: FileExplorerWorkspace) {
+export function useFileManagerKeyboard(workspace: FileManagerWorkspace) {
   const {
     footerModeRef, multiSelectedRef, columnsRef, focusedIndexRef, showHiddenRef,
     setFooterMode, setRenameValue, setShellCommand, setShowHidden, setFocusedIndex,

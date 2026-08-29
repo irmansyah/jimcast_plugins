@@ -1,4 +1,4 @@
-// src/domain/commands/resolveEntryTarget.ts
+// [plugins] jimcast-react-file-manager/src/domain/commands/resolveEntryTarget.ts
 //
 // Shared helper the CLI commands use to turn "<name|#>" typed text into an
 // actual entry in the focused (last) column. Not a workspace method — it
@@ -8,11 +8,11 @@
 // read-only.
 
 import { visibleEntries, entryFullPath } from "../fileSystemLogic";
-import type { FileExplorerWorkspace } from "../../presentation/hooks/useFileExplorerWorkspace";
+import type { FileManagerWorkspace } from "../../presentation/hooks/useFileManagerWorkspace";
 import type { FileEntry } from "../../types";
 
 export function resolveEntryTarget(
-  workspace: FileExplorerWorkspace,
+  workspace: FileManagerWorkspace,
   arg: string,
 ): { entry: FileEntry; index: number; path: string } | null {
   const cols = workspace.columns;

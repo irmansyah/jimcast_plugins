@@ -1,14 +1,14 @@
-// src/presentation/hooks/useFileExplorerCommandLine.ts
+// [plugins] jimcast-react-file-manager/src/presentation/hooks/useFileManagerCommandLine.ts
 
 import { useMemo, useRef } from "react";
 import { useCommandLine, type CommandLineRegistry, type Feedback } from "@jimcast/react-sdk/react";
-import type { FileExplorerWorkspace } from "./useFileExplorerWorkspace";
-import { buildFileExplorerCommands } from "../../domain/fileExplorerCommands";
+import type { FileManagerWorkspace } from "./useFileManagerWorkspace";
+import { buildFileManagerCommands } from "../../domain/fileManagerCommands";
 
-export function useFileExplorerCommandLine(workspace: FileExplorerWorkspace) {
+export function useFileManagerCommandLine(workspace: FileManagerWorkspace) {
   const notifyRef = useRef<(f: Feedback) => void>(() => {});
   const commands: CommandLineRegistry = useMemo(
-    () => buildFileExplorerCommands(workspace, (f) => notifyRef.current(f)),
+    () => buildFileManagerCommands(workspace, (f) => notifyRef.current(f)),
     [workspace.segments.join('\u0000'), workspace.multiSelected, workspace.focusedIndex],
   );
   const cli = useCommandLine(commands);

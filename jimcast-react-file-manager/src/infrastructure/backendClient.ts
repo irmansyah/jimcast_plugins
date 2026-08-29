@@ -1,4 +1,4 @@
-// jimcast-react-file-manager/src/infrastructure/backendClient.ts
+// [plugins] jimcast-react-file-manager/src/infrastructure/backendClient.ts
 //
 // The single seam through which this plugin's hooks/components talk to
 // the host. Every call that used to go through [core]'s local
@@ -15,7 +15,7 @@
 // '@jimcast/react-sdk/client' directly.
 //
 // NOT ported here: openHostNav-style nav subscription — that's
-// hooks/useFileExplorerNav.ts's job.
+// hooks/useFileManagerNav.ts's job.
 //
 // openFiles: this now round-trips correctly. The host's
 // QuickToolExternalWebview.tsx intercepts the 'openFiles' command
@@ -50,8 +50,11 @@ export function openPaths(paths: string[]): void {
   })
 }
 
-export function startDrag(paths: string[], allDirs = false): void {
-  void callHost('startDrag', { paths, allDirs }).catch(() => {})
+export function startDrag(paths: string[], rect: DOMRect, allDirs = false): void {
+  reportDragStarted(paths, {
+    x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+  })
+  void allDirs
 }
 
 // Was helpers.ts::openWithSystemPlayer. Moved here (rather than staying

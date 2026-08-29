@@ -1,4 +1,4 @@
-// src/domain/commands/fileCommands.ts
+// [plugins] jimcast-react-file-manager/src/domain/commands/fileCommands.ts
 //
 // delete/rename/run use the new performRenameWith/performShellCommandWith
 // (paths passed explicitly) instead of the state-driven originals, to
@@ -7,11 +7,11 @@
 // list-boards.
 
 import type { CommandLineRegistry, Feedback } from "@jimcast/react-sdk/react";
-import type { FileExplorerWorkspace } from "../../presentation/hooks/useFileExplorerWorkspace";
+import type { FileManagerWorkspace } from "../../presentation/hooks/useFileManagerWorkspace";
 import { resolveEntryTarget } from "./resolveEntryTarget";
 
 export function buildFileCommands(
-  workspace: FileExplorerWorkspace,
+  workspace: FileManagerWorkspace,
   notify: (f: Feedback) => void,
 ): CommandLineRegistry {
   return [

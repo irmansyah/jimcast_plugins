@@ -1,4 +1,4 @@
-// src/domain/commands/utilityCommands.ts
+// [plugins] jimcast-react-file-manager/src/domain/commands/utilityCommands.ts
 //
 // :search/:clear-search dropped — no searchActive/searchQuery state exists
 // in this workspace (unlike kanban's, which had dead-but-present state to
@@ -8,10 +8,10 @@
 // workspace.toggleHidden — that never existed).
 
 import type { CommandLineRegistry, Feedback } from "@jimcast/react-sdk/react";
-import type { FileExplorerWorkspace } from "../../presentation/hooks/useFileExplorerWorkspace";
+import type { FileManagerWorkspace } from "../../presentation/hooks/useFileManagerWorkspace";
 
 export function buildUtilityCommands(
-  workspace: FileExplorerWorkspace,
+  workspace: FileManagerWorkspace,
   notify: (f: Feedback) => void,
   openHelp?: () => void,
   registrySummary?: () => string,

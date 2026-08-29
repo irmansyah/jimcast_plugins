@@ -1,11 +1,11 @@
-// src/domain/keymap.ts
+// [plugins] jimcast-react-file-manager/src/domain/keymap.ts
 //
 // Direct port of kanban's keymap.ts — same public/config.json fetch,
 // same per-action fallback to DEFAULT_KEYMAP. Actions renamed to
 // file-manager's vocabulary; toggleSelection/openSelection/deleteSelection
 // replace kanban's card-specific actions.
 
-export type FileExplorerAction =
+export type FileManagerAction =
   | "moveFocusUp"
   | "moveFocusDown"
   | "moveFocusLeft"
@@ -18,7 +18,7 @@ export type FileExplorerAction =
   | "closeOrBack"
   | "toggleHelp";
 
-export type Keymap = Record<FileExplorerAction, string[]>;
+export type Keymap = Record<FileManagerAction, string[]>;
 
 export const DEFAULT_KEYMAP: Keymap = {
   moveFocusUp: ["k", "ArrowUp"],
@@ -46,8 +46,8 @@ export async function loadKeymap(): Promise<Keymap> {
   }
 }
 
-export function resolveAction(keymap: Keymap, key: string): FileExplorerAction | null {
-  for (const [action, keys] of Object.entries(keymap) as [FileExplorerAction, string[]][]) {
+export function resolveAction(keymap: Keymap, key: string): FileManagerAction | null {
+  for (const [action, keys] of Object.entries(keymap) as [FileManagerAction, string[]][]) {
     if (keys.includes(key)) return action;
   }
   return null;

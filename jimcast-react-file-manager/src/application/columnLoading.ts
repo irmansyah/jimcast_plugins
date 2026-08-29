@@ -3,9 +3,9 @@
 // Composes infrastructure/backendClient.ts (shellExec) with
 // domain/fileSystemLogic.ts (parseLsEntries, buildPath, resolveHome) into
 // the "load $HOME" and "load a directory column" operations. Ported from
-// the two effect bodies at the top of the old FileExplorerPlugin.tsx —
+// the two effect bodies at the top of the old FileManagerPlugin.tsx —
 // the shape of each fetch is unchanged, this just gives it a name outside
-// the component so useFileExplorerWorkspace doesn't have to inline it.
+// the component so useFileManagerWorkspace doesn't have to inline it.
 
 import { shellExec } from '../infrastructure/backendClient'
 import { buildPath, parseLsEntries, resolveHome } from '../domain/fileSystemLogic'
