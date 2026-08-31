@@ -1,4 +1,4 @@
-// jimcast-react-file-manager/src/presentation/hooks/useFileManagerNav.ts
+// [plugins] jimcast-react-file-manager/src/presentation/hooks/useFileManagerNav.ts
 //
 // Wires the workspace into the host's arrow-key/activate nav protocol via
 // @jimcast/react-sdk/react's useHostNav.

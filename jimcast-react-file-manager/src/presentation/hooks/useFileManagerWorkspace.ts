@@ -26,6 +26,28 @@
 // is invoked with zero args there today, this param is additive/optional
 // and safe, but App.tsx needs updating to actually pass a callback for
 // this to do anything.
+//
+// Persistence (this session): the expandable that hosts this plugin's
+// iframe genuinely unmounts/remounts on close/reopen — confirmed by
+// tracing [core]'s useWidgetExpandable.ts (target -> null wipes state
+// synchronously) and WidgetExpandable.tsx (`if (!open || !target) return
+// null`, so the iframe DOM node itself is destroyed, not hidden). Every
+// useState above is lost on close with no exceptions. Fixed by hydrating
+// from @jimcast/react-sdk/client's useHostStorage() on mount and
+// persisting (segments, focusedIndex, showHidden, multiSelected) back as
+// one combined key, debounced. This goes through [core]'s existing
+// storage_get/storage_set host-primitive bridge — no [core] or [sdk]
+// changes needed, both already work (kanban's `boards` state uses the
+// identical mechanism).
+//
+// One subtlety: the columns-loading effect below unconditionally calls
+// setFocusedIndex(0) every time a segments change finishes loading —
+// including the reload that hydration's setSegments(...) triggers on
+// mount. Restoring focusedIndex naively would get immediately stomped
+// back to 0 by that reload. pendingFocusedIndexRef exists solely to
+// survive that one reload: hydration stashes the persisted index there
+// instead of calling setFocusedIndex directly, and the columns effect
+// consumes-and-clears it (falling back to 0 as before) whenever it's set.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import type { ColumnData, FileEntry, FooterMode, SelectionAnchor } from '../../types'
@@ -41,7 +63,19 @@ import { loadHomeDir, loadColumns } from '../../application/columnLoading'
 import { deleteFiles, renameFile, runShellCommand } from '../../application/fileOperations'
 import { openSelection } from '../../application/fileOpening'
 import { reportFocusedItem, reportDragStarted, startDrag } from '../../infrastructure/backendClient'
-import { useHostStorage } from '@jimcast/react-sdk/client'  // exact hook shape TBD, see below
+import { useHostStorage } from '@jimcast/react-sdk/client'
+
+// Combined shape persisted under a single storage key — combining avoids
+// firing multiple storage round-trips for state that's updated together,
+// per the host storage API's own key-design guidance.
+interface PersistedWorkspaceState {
+  segments: string[]
+  focusedIndex: number
+  showHidden: boolean
+  multiSelected: string[]
+}
+const WORKSPACE_STORAGE_KEY = 'workspace-state'
+const PERSIST_DEBOUNCE_MS = 250
 
 export function useFileManagerWorkspace(onSelectionChange?: (paths: string[]) => void) {
   const [homeDir, setHomeDir] = useState<string | null>(null)
@@ -57,8 +91,60 @@ export function useFileManagerWorkspace(onSelectionChange?: (paths: string[]) =>
 
   const storage = useHostStorage()
 
+  // See file header. Set by hydration below when a persisted segments
+  // change is about to trigger a reload; consumed exactly once by
+  // whichever columns-load resolves next, in place of the usual "reset
+  // to 0 on every navigation" behavior.
+  const pendingFocusedIndexRef = useRef<number | null>(null)
+
   useEffect(() => {
     loadHomeDir().then(setHomeDir)
+  }, [])
+
+  // Hydrate persisted workspace state once on mount. Deliberately closes
+  // over the mount-time `segments` (deps are `[]`) rather than reading a
+  // ref, since we specifically want "what the component was initialized
+  // with" to diff the persisted value against.
+  useEffect(() => {
+    let cancelled = false
+    storage.get(WORKSPACE_STORAGE_KEY)
+      .then((raw) => {
+        if (cancelled || !raw) return
+        let parsed: Partial<PersistedWorkspaceState>
+        try {
+          parsed = JSON.parse(raw as string)
+        } catch {
+          return
+        }
+
+        if (typeof parsed.showHidden === 'boolean') setShowHidden(parsed.showHidden)
+        if (Array.isArray(parsed.multiSelected)) setMultiSelected(new Set(parsed.multiSelected))
+
+        const persistedSegments =
+          Array.isArray(parsed.segments) && parsed.segments.length > 0 ? parsed.segments : null
+        const persistedFocusedIndex =
+          typeof parsed.focusedIndex === 'number' ? parsed.focusedIndex : null
+
+        if (persistedSegments && persistedSegments.join('\u0000') !== segments.join('\u0000')) {
+          // A reload is coming (segments effect below is keyed on this
+          // value) — stash the index for that reload to apply instead of
+          // its usual setFocusedIndex(0).
+          pendingFocusedIndexRef.current = persistedFocusedIndex
+          setSegments(persistedSegments)
+        } else if (persistedFocusedIndex !== null) {
+          // Segments already match the mount-time default (first-ever
+          // run, or resuming exactly at home) — no reload is coming to
+          // consume the pending ref, so apply the index directly.
+          setFocusedIndex(persistedFocusedIndex)
+        }
+      })
+      .catch(() => {
+        // No persisted state yet (first run), or a storage implementation
+        // that rejects rather than resolving null/undefined for a missing
+        // key — either way, keep the hardcoded defaults.
+      })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Re-fetches the entire column chain on every navigation/refresh —
@@ -76,7 +162,12 @@ export function useFileManagerWorkspace(onSelectionChange?: (paths: string[]) =>
     loadColumns(segments).then(results => {
       if (cancelled) return
       setColumns(results)
-      setFocusedIndex(0)
+      if (pendingFocusedIndexRef.current !== null) {
+        setFocusedIndex(pendingFocusedIndexRef.current)
+        pendingFocusedIndexRef.current = null
+      } else {
+        setFocusedIndex(0)
+      }
     })
 
     return () => { cancelled = true }
@@ -105,10 +196,24 @@ export function useFileManagerWorkspace(onSelectionChange?: (paths: string[]) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [multiSelected])
 
+  // Persists (segments, focusedIndex, showHidden, multiSelected) as one
+  // combined key any time any of them change, debounced so rapid
+  // arrow-key navigation doesn't fire a storage round-trip per keystroke.
+  // Supersedes an earlier per-key `storage.set('multiSelected', ...)`
+  // write that had no matching read and duplicated the
+  // onSelectionChange effect above.
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
-    storage.set('multiSelected', JSON.stringify(Array.from(multiSelected))).catch(() => {})
-    onSelectionChange?.(Array.from(multiSelected))
-  }, [multiSelected])
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current)
+    persistTimerRef.current = setTimeout(() => {
+      const payload: PersistedWorkspaceState = {
+        segments, focusedIndex, showHidden, multiSelected: Array.from(multiSelected),
+      }
+      storage.set(WORKSPACE_STORAGE_KEY, JSON.stringify(payload)).catch(() => {})
+    }, PERSIST_DEBOUNCE_MS)
+    return () => { if (persistTimerRef.current) clearTimeout(persistTimerRef.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [segments, focusedIndex, showHidden, multiSelected])
 
   const anchorRef = useRef<SelectionAnchor | null>(null)
 

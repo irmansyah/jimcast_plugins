@@ -1,4 +1,4 @@
-// jimcast-react-file-manager/src/presentation/hooks/useFileManagerKeyboard.ts
+// [plugins] jimcast-react-file-manager/src/presentation/hooks/useFileManagerKeyboard.ts
 //
 // The global keydown handler from the old component (window-level, not
 // tied to any one row) — extracted verbatim, plus two additions:
