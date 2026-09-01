@@ -1,4 +1,4 @@
-// jimcast-react-kanban/src/domain/kanbanLogic.ts
+// [plugins] jimcast-react-kanban/src/domain/kanbanLogic.ts
 //
 // Ported from the old jimcast-react-kanban plugin's domain/kanbanLogic.ts,
 // unchanged apart from the import path — this logic has no IPC/backend

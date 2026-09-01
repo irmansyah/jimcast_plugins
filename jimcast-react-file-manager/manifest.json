@@ -3,5 +3,5 @@
   "displayName": "FILE EXPLORER",
   "version": "1.0.0",
   "entry": "dist/index.html",
-  "capabilities": ["shell", "fs:read"]
+  "capabilities": ["shell", "fs:read", "search", "index"]
 }

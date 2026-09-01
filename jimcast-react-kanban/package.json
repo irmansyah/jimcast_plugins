@@ -11,8 +11,8 @@
     "build:backend": "node esbuild.backend.js"
   },
   "dependencies": {
-    "@jimcast/react-sdk": "file:../../jimcast-sdk/packages/react-sdk",
     "@jimcast/protocol": "file:../../jimcast-sdk/packages/protocol",
+    "@jimcast/react-sdk": "file:../../jimcast-sdk/packages/react-sdk",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
