@@ -1,5 +1,6 @@
 mod projects;
 mod tasks;
+pub mod theme;
 
 use ratatui::Frame;
 

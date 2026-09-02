@@ -1,7 +1,3 @@
-//! Wire-format models for the TUI HTTP client. Deliberately decoupled
-//! from the `domain` crate: the TUI is just another delivery mechanism
-//! consuming the backend's public JSON contract, not an internal module.
-
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -27,20 +23,37 @@ pub struct TaskView {
     pub updated_at: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Default, Serialize)]
 pub struct CreateProjectPayload {
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Default, Serialize)]
+pub struct UpdateProjectPayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+}
+
+#[derive(Debug, Default, Serialize)]
 pub struct CreateTaskPayload {
     pub title: String,
     pub description: Option<String>,
     pub priority: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Default, Serialize)]
 pub struct UpdateTaskPayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub priority: Option<String>,
 }
