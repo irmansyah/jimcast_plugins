@@ -1,16 +1,6 @@
 // [plugins] jimcast-react-file-manager/src/App.tsx
-//
-// Mirrors kanban's App.tsx: resolve the theme, build styles from it, mount
-// the shell. Trivial now that useTheme (client), fileManagerStyles, and
-// useHostNav (react) all exist.
-//
-// FileManagerShell doesn't exist yet — it's the remaining big task (the
-// 633-line FileManagerPlugin.tsx split into presentation/hooks/
-// useFileManagerWorkspace.ts + presentation/components/*, see
-// CARRY_FORWARD.md). This file establishes the target wiring so that
-// split has a concrete interface to build toward, rather than being
-// designed in a vacuum.
 
+import { useEffect } from 'react'
 import { useTheme } from '@jimcast/react-sdk/client'
 import { fileManagerStyles } from './styles'
 import { FileManagerShell } from './presentation/components/FileManagerShell'
@@ -18,5 +8,20 @@ import { FileManagerShell } from './presentation/components/FileManagerShell'
 export default function App() {
   const theme = useTheme()
   const styles = fileManagerStyles(theme)
+
+  // Mirror [core]'s globalSetup.ts::applyTokens(): this iframe has its own
+  // document, so the host's CSS variables (set on ITS document) never
+  // reach here. Without this, index.css's scrollbar rules (which read
+  // these same variable names) have nothing to resolve against and every
+  // scroll area in this plugin falls back to the default browser/webview
+  // scrollbar instead of following the active theme.
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--color-bg',  theme.colors.bg)
+    root.style.setProperty('--color-bg3', theme.colors.bg3)
+    root.style.setProperty('--color-bg4', theme.colors.bg4)
+    root.style.setProperty('color-scheme', theme.mode)
+  }, [theme])
+
   return <FileManagerShell styles={styles} />
 }

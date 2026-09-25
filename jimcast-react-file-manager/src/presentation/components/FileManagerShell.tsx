@@ -1,33 +1,4 @@
 // jimcast-react-file-manager/src/presentation/components/FileManagerShell.tsx
-//
-// Was the monolithic FileManagerPlugin.tsx. Now: run the workspace hook,
-// wire up the keyboard and host-nav hooks, render header/breadcrumbs/
-// columns/footer using the pieces split into IconButton/ColRow/
-// Breadcrumbs/CommandFooter. No business logic lives here — every
-// callback is either a workspace action or a thin JSX-event adapter over
-// one. `styles` is the Record<string, CSSProperties> from
-// fileManagerStyles(theme), passed down from App.tsx.
-//
-// NOTE: styles is intentionally typed as the wide Record<string,
-// CSSProperties> at the App.tsx boundary (fileManagerStyles's return
-// type), but each leaf component (Breadcrumbs/ColRow/CommandFooter)
-// declares a narrower interface listing only the specific keys it uses.
-// A `[key: string]: CSSProperties` index signature does NOT prove those
-// specific named keys exist, so TS correctly rejects passing the wide
-// object directly — an earlier version of this file assumed otherwise
-// and didn't typecheck. Casting via each component's own exported style
-// interface keeps the cast checked against a real shape instead of an
-// unchecked `as any`.
-//
-// Drag/focus reporting: ColRow only hands back a DOMRect, plus which
-// column/index/entry it belongs to via the closure below — it has no
-// idea what "this row's path" or "is this row part of the current
-// selection" mean. That's workspace state, so handleRowDragStart /
-// reportRowFocus (both owned by useFileManagerWorkspace) resolve the
-// fullPath and decide internally whether to drag just this row or the
-// whole multi-selection. This shell never imports backendClient
-// directly — same one-seam rule the header comment on backendClient.ts
-// describes.
 
 import type { CSSProperties } from 'react'
 import { visibleEntries, entryFullPath } from '../../domain/fileSystemLogic'
@@ -53,10 +24,6 @@ export function FileManagerShell({ styles }: { styles: Record<string, CSSPropert
     performRename, performShellCommand,
   } = workspace
 
-  // Widened at the App.tsx boundary, narrowed back per-component here —
-  // see file header. Each cast goes through `unknown` because the wide
-  // Record type and the narrow named-property interface aren't directly
-  // related from TS's point of view.
   const breadcrumbStyles = styles as unknown as BreadcrumbStyles
   const colRowStyles = styles as unknown as ColRowStyles
   const footerStyles = styles as unknown as CommandFooterStyles

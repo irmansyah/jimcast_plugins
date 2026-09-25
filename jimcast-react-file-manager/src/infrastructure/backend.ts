@@ -1,61 +1,8 @@
 // [plugins] jimcast-react-file-manager/src/infrastructure/backend.ts
-//
-// Replaces the old hand-rolled readline/NDJSON dispatch loop with
-// @jimcast/react-sdk/server's defineWebviewBackend, which owns the single
-// stdin reader for the process and disambiguates inbound host->plugin
-// requests from replies to our own callHost() calls via hostRpc's
-// resolvePending() — something the old loop never had to do because it
-// never called callHost() itself.
-//
-// defineWebviewBackend's WebviewBackendDefinition shape
-// ({ [command]: (args) => unknown | Promise<unknown> }) is exactly what
-// the old flat `handlers` table already was, so every handler body below
-// is an unmodified port — no reshaping needed, confirmed against the real
-// signature this time (not guessed).
-//
-// CLI-reachable commands added (the `commands` array, mirroring kanban's
-// defineCommand pattern): unlike domain/commands/*.ts's CommandLineRegistry
-// (which resolves entirely inside the running iframe against live
-// `workspace` React state), everything here is stateless — it re-derives
-// its answer from the filesystem on every call, same as listDir already
-// did. This is a deliberate, narrower surface than the in-app command
-// bar:
-//
-//   - `home` / `list <path>` — directory listing, no live selection or
-//     cursor state involved.
-//   - `run` — free-text fallback (kanban has the same shape), covering
-//     "home" and "list <path>" typed as one word, so
-//     `jimcast plugin command "@file-manager home"` works the same way
-//     `"@kanban list"` does.
-//
-// Explicitly NOT added here, and why: `selected`, `delete`, `select-all`,
-// `rename`, single-item `open`/`select` by name/#, and jumpToCrumb-style
-// `home` (in the "navigate the open UI" sense) all read or mutate
-// `workspace` state that only exists in the running iframe's React tree.
-// This backend process has no channel back into that state — reaching it
-// would mean either (a) syncing selection/cursor state out to host/plugin
-// storage on every change (the same gap flagged for `jimcast selection`
-// vs. this plugin's own `multiSelected`), or (b) a host->iframe RPC route
-// that doesn't exist today. Don't stub these with fake logic; leave them
-// unregistered so callers get an honest "unknown command" instead of a
-// silently wrong answer.
-//
-// isAvFile -> isVideoFile rename: fileSystemLogic.ts split its old
-// AV_EXT (audio+video) into VIDEO_EXT only, now that audio opens through
-// the host's in-app popup viewer (via openFiles, a host-UI-only call
-// intercepted in QuickToolExternalWebview.tsx — never reaches this
-// process) instead of the OS system player. openFile below is
-// unchanged — it's the single-video-file system-player path, called
-// only when fileOpening.ts's isVideoFile check matches.
-//
-// NOTE: if anything else in this codebase still calls
-// callHost('isAvFile', ...) expecting audio to also report true, that
-// call site needs to move to the openFiles/viewer path instead — this
-// handler's semantics changed from "is this AV" to "is this video".
 
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { defineWebviewBackend, defineCommand, defineSearch, defineCorpus, getHostStorage } from '@jimcast/react-sdk/server'
+import { defineWebviewBackend, defineCommand, defineSearch, defineCorpus, useHostStorage } from '@jimcast/react-sdk/server'
 import { scoreFields, FIELD_WEIGHT, type SearchResultItem, type Document } from '@jimcast/protocol'
 import {
   parseLsEntries, resolveHome, buildPath, entryFullPath, visibleEntries,
@@ -64,7 +11,7 @@ import {
 import type { ColumnData, FileEntry } from '../types'
 
 const run = promisify(execFile)
-const storage = getHostStorage()
+const storage = useHostStorage()
 
 // ─── shell helpers ───────────────────────────────────────────────────────
 // PATH is already the resolved login-shell PATH — build_sandbox_env

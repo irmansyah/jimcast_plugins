@@ -1,0 +1,34 @@
+/* [plugins] jimcast-react-file-manager/src/index.css */
+
+html {
+  color-scheme: dark;
+}
+
+html, body {
+  margin:   0;
+  height:   100%;
+  overflow: hidden;
+}
+
+#root {
+  height:   100%;
+  overflow: hidden;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+/* --color-bg / --color-bg3 / --color-bg4 are set at runtime in App.tsx from
+ * useTheme(), mirroring how [core]'s globalSetup.ts::applyTokens() sets the
+ * same variable names on the host document. This plugin runs in its own
+ * iframe document, so it can't inherit the host's CSS variables — it has
+ * to set its own copy from the same theme object it already reads via
+ * useTheme(), or its scrollbars fall back to the browser/webview default
+ * (unstyled, usually white/gray) regardless of the active theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-bg3) var(--color-bg);
+}
+::-webkit-scrollbar             { width: 5px; height: 5px; }
+::-webkit-scrollbar-track       { background: var(--color-bg); }
+::-webkit-scrollbar-thumb       { background: var(--color-bg3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-bg4); }
+::-webkit-scrollbar-corner      { background: var(--color-bg); }
