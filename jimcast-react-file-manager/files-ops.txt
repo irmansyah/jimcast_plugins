@@ -1,0 +1,23 @@
+═══ FILE MANAGER ══════════════════════════════════════════════════════
+NEW
+  src/handlers.ts
+  src/presentation/components/CommandLineBar.tsx
+MOVE
+  src/domain/commands/resolveEntryTarget.ts -> src/domain/resolveEntryTarget.ts
+REWRITE
+  manifest.json, src/main.tsx, src/App.tsx, src/infrastructure/backend.ts
+MODIFY
+  src/presentation/components/FileManagerShell.tsx   (props instead of hooks; renders CommandLineBar)
+  src/presentation/hooks/useFileManagerWorkspace.ts  (see PATCH.txt: performDeleteWith)
+DELETE
+  config.json
+  src/config.ts
+  src/domain/keymap.ts                       (was never read by the keyboard hook — dead code)
+  src/domain/fileManagerCommands.ts
+  src/domain/commands/{fileCommands,navigationCommands,selectionCommands,utilityCommands}.ts
+  src/presentation/hooks/useFileManagerCommandLine.ts   (Shell never used it)
+  src/presentation/hooks/useFileManagerKeyboard.ts      (-> handlers.actions + manifest keybindings)
+  src/presentation/hooks/useFileManagerNav.ts           (-> createApp routes host nav to moveUp/Down/Left/Right/activate)
+UNCHANGED
+  CommandFooter, ColRow, Breadcrumbs, IconButton, styles, domain/*Logic, application/*, infrastructure/backendClient
+  esbuild.backend.js  (JSON import of manifest works as-is)

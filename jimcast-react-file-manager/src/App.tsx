@@ -1,20 +1,16 @@
 // [plugins] jimcast-react-file-manager/src/App.tsx
 
 import { useEffect } from 'react'
-import { useTheme } from '@jimcast/react-sdk/client'
+import type { AppViewProps } from '@jimcast/react-sdk/react'
 import { fileManagerStyles } from './styles'
 import { FileManagerShell } from './presentation/components/FileManagerShell'
+import type { FileManagerWorkspace } from './presentation/hooks/useFileManagerWorkspace'
+import type { FileManagerConfig } from './handlers'
 
-export default function App() {
-  const theme = useTheme()
+export default function App({ workspace, commandLine, theme }: AppViewProps<FileManagerWorkspace, FileManagerConfig>) {
   const styles = fileManagerStyles(theme)
 
-  // Mirror [core]'s globalSetup.ts::applyTokens(): this iframe has its own
-  // document, so the host's CSS variables (set on ITS document) never
-  // reach here. Without this, index.css's scrollbar rules (which read
-  // these same variable names) have nothing to resolve against and every
-  // scroll area in this plugin falls back to the default browser/webview
-  // scrollbar instead of following the active theme.
+  // Mirror [core]'s globalSetup.ts::applyTokens() — see original comment: this iframe has its own document.
   useEffect(() => {
     const root = document.documentElement
     root.style.setProperty('--color-bg',  theme.colors.bg)
@@ -23,5 +19,5 @@ export default function App() {
     root.style.setProperty('color-scheme', theme.mode)
   }, [theme])
 
-  return <FileManagerShell styles={styles} />
+  return <FileManagerShell workspace={workspace} commandLine={commandLine} theme={theme} styles={styles} />
 }

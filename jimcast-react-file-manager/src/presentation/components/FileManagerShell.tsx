@@ -1,20 +1,25 @@
 // jimcast-react-file-manager/src/presentation/components/FileManagerShell.tsx
 
 import type { CSSProperties } from 'react'
+import type { UseCommandLineResult } from '@jimcast/react-sdk/react'
+import type { ThemeContext } from '@jimcast/protocol'
 import { visibleEntries, entryFullPath } from '../../domain/fileSystemLogic'
-import { useFileManagerWorkspace } from '../hooks/useFileManagerWorkspace'
-import { useFileManagerKeyboard } from '../hooks/useFileManagerKeyboard'
-import { useFileManagerNav } from '../hooks/useFileManagerNav'
+import type { FileManagerWorkspace } from '../hooks/useFileManagerWorkspace'
 import { IconButton } from './IconButton'
 import { ColRow, type ColRowStyles } from './ColRow'
 import { Breadcrumbs, type BreadcrumbStyles } from './Breadcrumbs'
 import { CommandFooter, type CommandFooterStyles } from './CommandFooter'
+import { CommandLineBar } from './CommandLineBar'
 
-export function FileManagerShell({ styles }: { styles: Record<string, CSSProperties> }) {
-  const workspace = useFileManagerWorkspace()
-  useFileManagerKeyboard(workspace)
-  useFileManagerNav(workspace)
+interface Props {
+  workspace: FileManagerWorkspace
+  commandLine: UseCommandLineResult
+  theme: ThemeContext
+  styles: Record<string, CSSProperties>
+}
 
+// State + keyboard + host-nav wiring moved to the SDK's createApp. This component is now pure view.
+export function FileManagerShell({ workspace, commandLine, theme, styles }: Props) {
   const {
     homeDir, segments, columns, showHidden, focusedIndex, multiSelected,
     footerMode, renameValue, shellCommand,
@@ -77,6 +82,8 @@ export function FileManagerShell({ styles }: { styles: Record<string, CSSPropert
           )
         })}
       </div>
+
+      <CommandLineBar cl={commandLine} theme={theme} />
 
       <CommandFooter
         footerMode={footerMode}

@@ -13,7 +13,7 @@ importers:
         version: file:../../jimcast-sdk/packages/protocol
       '@jimcast/react-sdk':
         specifier: file:../../jimcast-sdk/packages/react-sdk
-        version: file:../../jimcast-sdk/packages/react-sdk(react@18.3.1)
+        version: file:../../jimcast-sdk/packages/react-sdk(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -417,8 +417,11 @@ packages:
     resolution: {directory: ../../jimcast-sdk/packages/react-sdk, type: directory}
     peerDependencies:
       react: '>=18'
+      react-dom: '>=18'
     peerDependenciesMeta:
       react:
+        optional: true
+      react-dom:
         optional: true
 
   '@jridgewell/gen-mapping@0.3.13':
@@ -1047,11 +1050,12 @@ snapshots:
 
   '@jimcast/protocol@file:../../jimcast-sdk/packages/protocol': {}
 
-  '@jimcast/react-sdk@file:../../jimcast-sdk/packages/react-sdk(react@18.3.1)':
+  '@jimcast/react-sdk@file:../../jimcast-sdk/packages/react-sdk(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@jimcast/protocol': file:../../jimcast-sdk/packages/protocol
     optionalDependencies:
       react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

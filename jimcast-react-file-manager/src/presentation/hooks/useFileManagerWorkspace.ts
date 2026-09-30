@@ -13,19 +13,15 @@
 //
 // moveFocus/activateFocused were lifted in from useFileManagerNav.ts so
 // there's a single source of truth for "what does up/down/left/right/
-// activate mean" — both the host's arrow-key protocol (useFileManagerNav)
-// and vim hjkl (useFileManagerKeyboard, gated on config.json's
-// keybindings.mode) now call the same two functions instead of each
-// hook maintaining its own copy of the focus-movement logic.
+// activate mean" — both the host's arrow-key protocol and the keyboard
+// (via createApp's action handlers in handlers.ts) call the same two
+// functions instead of each maintaining its own copy of the focus-movement
+// logic.
 //
 // onSelectionChange: optional callback fired whenever multiSelected
-// changes, given the current list of selected paths. Added so a
-// consumer (App.tsx, or a host integration) can react to selection
-// without reaching into workspace.multiSelected itself. NOTE: the call
-// site in App.tsx hasn't been confirmed yet — if useFileManagerWorkspace
-// is invoked with zero args there today, this param is additive/optional
-// and safe, but App.tsx needs updating to actually pass a callback for
-// this to do anything.
+// changes, given the current list of selected paths. Nothing passes one
+// today (createApp calls useWorkspace() with no args) — additive/optional
+// and safe to delete.
 //
 // Persistence (this session): the expandable that hosts this plugin's
 // iframe genuinely unmounts/remounts on close/reopen — confirmed by
@@ -62,7 +58,7 @@ import {
 import { loadHomeDir, loadColumns } from '../../application/columnLoading'
 import { deleteFiles, renameFile, runShellCommand } from '../../application/fileOperations'
 import { openSelection } from '../../application/fileOpening'
-import { reportFocusedItem, reportDragStarted, startDrag } from '../../infrastructure/backendClient'
+import { reportFocusedItem, reportDragStarted } from '../../infrastructure/backendClient'
 import { useHostStorage } from '@jimcast/react-sdk/client'
 
 // Combined shape persisted under a single storage key — combining avoids
@@ -360,9 +356,12 @@ export function useFileManagerWorkspace(onSelectionChange?: (paths: string[]) =>
     anchorRef.current = null
   }, [])
 
-  // "d" then "d"/"y" again (or Escape to cancel).
-  const performDelete = useCallback(async () => {
-    const paths = Array.from(multiSelectedRef.current)
+  // Deletes an EXPLICIT list of paths. The ":delete" command uses this
+  // directly: it can't go through selectEntry() + performDelete(), because
+  // performDelete() reads multiSelectedRef, which only updates on the next
+  // render — with `delete! foo` (confirm skipped) that would delete the
+  // PREVIOUS selection.
+  const performDeleteWith = useCallback(async (paths: string[]) => {
     if (paths.length === 0) { setFooterMode('hint'); return }
     await deleteFiles(paths)
     setMultiSelected(new Set())
@@ -371,11 +370,16 @@ export function useFileManagerWorkspace(onSelectionChange?: (paths: string[]) =>
     setRefreshTick(t => t + 1)
   }, [])
 
+  // "d" then "d"/"y" again (or Escape to cancel) — deletes the current selection.
+  const performDelete = useCallback(async () => {
+    await performDeleteWith(Array.from(multiSelectedRef.current))
+  }, [performDeleteWith])
+
   // "m" — only ever armed when exactly one file is selected.
   const performRename = useCallback(async () => {
     const paths = Array.from(multiSelectedRef.current)
-    if (paths.length !== 1) { setFooterMode('hint'); return }
     const oldPath = paths[0]
+    if (paths.length !== 1 || oldPath === undefined) { setFooterMode('hint'); return }
     const newName = renameValue.trim()
     if (!newName || newName === basename(oldPath)) { setFooterMode('hint'); return }
     const newPath = await renameFile(oldPath, newName)
@@ -394,9 +398,9 @@ export function useFileManagerWorkspace(onSelectionChange?: (paths: string[]) =>
   }, [shellCommand])
 
   // Single source of truth for arrow-style focus movement in the last
-  // (deepest) column — shared by useFileManagerNav (host arrow-key
-  // protocol) and useFileManagerKeyboard (vim hjkl, gated on config.json's
-  // keybindings.mode). Extracted verbatim from what used to be
+  // (deepest) column — shared by the host's arrow-key protocol and the
+  // keyboard actions (moveUp/moveDown/moveLeft/moveRight/vimRight in
+  // handlers.ts). Extracted verbatim from what used to be
   // useFileManagerNav's onArrow closure.
   const moveFocus = useCallback((dir: 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight') => {
     const cols = columnsRef.current
@@ -415,9 +419,8 @@ export function useFileManagerWorkspace(onSelectionChange?: (paths: string[]) =>
   }, [goUp, openEntry])
 
   // Single source of truth for "activate the focused/selected entr(y/ies)"
-  // — Enter on the host side, and Enter/"l"-on-a-file in vim mode.
-  // Extracted verbatim from what used to be useFileManagerNav's
-  // onActivate closure.
+  // — Enter, the host's activate event, and vim "l" on a file. Extracted
+  // verbatim from what used to be useFileManagerNav's onActivate closure.
   const activateFocused = useCallback(() => {
     const selected = multiSelectedRef.current
     if (selected.size > 0) {
@@ -472,9 +475,9 @@ export function useFileManagerWorkspace(onSelectionChange?: (paths: string[]) =>
     // state
     homeDir, segments, columns, showHidden, focusedIndex, multiSelected,
     footerMode, renameValue, shellCommand,
-    // refs — exposed for useFileManagerKeyboard / useFileManagerNav,
-    // which subscribe once and need latest-value access outside React's
-    // render cycle, same reason the original component kept them as refs.
+    // refs — exposed for the key actions in handlers.ts, which run
+    // outside React's render cycle and need latest-value access, same
+    // reason the original component kept them as refs.
     columnsRef, focusedIndexRef, showHiddenRef, multiSelectedRef,
     segmentsRef, homeDirRef, footerModeRef,
     // setters
@@ -483,9 +486,9 @@ export function useFileManagerWorkspace(onSelectionChange?: (paths: string[]) =>
     openEntry, goUp, jumpToCrumb, reportRowFocus,
     handleRowClick, handleRowDoubleClick, handleRowDragStart,
     toggleFocusedSelection, selectAllInColumn, selectMatchingInColumn, copySelectedPaths, clearSelection,
-    performDelete, performRename, performShellCommand,
+    performDelete, performDeleteWith, performRename, performShellCommand,
     moveFocus, activateFocused,
-    selectEntry, selectAndOpenPaths, performRenameWith, performShellCommandWith
+    selectEntry, selectAndOpenPaths, performRenameWith, performShellCommandWith,
   }
 }
 
