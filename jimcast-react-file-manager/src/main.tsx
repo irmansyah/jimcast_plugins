@@ -1,4 +1,4 @@
-// jimcast-react-file-manager/src/main.tsx
+// [plugins] jimcast-react-file-manager/src/main.tsx
 
 import { createRoot } from 'react-dom/client'
 import App from './App'

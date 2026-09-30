@@ -1,4 +1,4 @@
-// jimcast-react-file-manager/src/config.ts
+// [plugins] jimcast-react-file-manager/src/config.ts
 //
 // Static app config, bundled at build time (Vite handles the JSON import;
 // TS needs "resolveJsonModule": true in tsconfig.json for this to

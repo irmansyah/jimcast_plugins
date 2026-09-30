@@ -1,4 +1,4 @@
-// jimcast-react-file-manager/src/application/fileOperations.ts
+// [plugins] jimcast-react-file-manager/src/application/fileOperations.ts
 //
 // The three side-effecting file operations (delete/rename/run-shell),
 // each composing infrastructure/backendClient.ts's shellExec with a bit
