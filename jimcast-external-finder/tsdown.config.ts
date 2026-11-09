@@ -1,27 +1,15 @@
-// [plugin] jimcast-plugins/jimcast-external-finder/tsdown.config.ts
-
 import { defineConfig } from "tsdown";
-import { execSync } from "child_process";
-import { basename } from "path";
 
+// Core copies only dist/ and package.json into ~/.jimcast/plugins/<name>/, with
+// no node_modules, so the SDK has to be bundled into the output.
+// platform "node" makes tsdown emit dist/index.mjs; package.json "main" matches.
 export default defineConfig({
-  entry: ["src/main.ts"],
-  format: ["esm"],
-  unbundle: false,
-  deps: {
-    alwaysBundle: ["@jimcast/sdk", "@jimcast/sdk/runtime"],
-    onlyBundle: false
-  },
-  sourcemap: false,
-  clean: true,
+  entry: ["src/index.ts"],
+  format: "esm",
+  platform: "node",
+  target: "node20",
   outDir: "dist",
-  dts: {
-    sourcemap: false,
-  },
-  onSuccess: async () => {
-    const pluginDir = `~/.jimcast/plugins/${basename(process.cwd())}`;
-    execSync(
-      `mkdir -p ${pluginDir}/dist && cp dist/main.mjs ${pluginDir}/dist/ && cp package.json ${pluginDir}/`
-    );
-  },
+  clean: true,
+  dts: false,
+  noExternal: [/^@jimcast\//],
 });

@@ -1,0 +1,25 @@
+{
+  "name": "jimcast-external-finder2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "macOS Finder-style column browser for jimcast: marks, copy/cut/paste, zip, Trash, keys and CLI.",
+  "type": "module",
+  "main": "dist/index.mjs",
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "jimcast": {
+    "capabilities": ["shell", "fs_read", "widget-cli", "widget-keys"]
+  },
+  "dependencies": {
+    "@jimcast/protocol": "file:../../jimcast-sdk/packages/protocol",
+    "@jimcast/sdk": "file:../../jimcast-sdk/packages/sdk"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsdown": ">=0.15.0",
+    "typescript": "^5.6.0"
+  }
+}
