@@ -36,7 +36,7 @@ function palette(ctx: ExecutionContext) {
     fg: g("fg", "#ebdbb2"),
     fg2: g("fg2", "#d5c4a1"),
     fg4: g("fg4", "#a89984"),
-    bg2: g("bg2", "#504945"),
+    bg1: g("bg1", "#232326"),
     yellow: g("yellow", "#d79921"),
     brightGreen: g("brightGreen", "#b8bb26"),
     brightYellow: g("brightYellow", "#fabd2f"),
@@ -214,7 +214,7 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
       : []),
   ];
 
-  const panel = { background: c.bg2, borderRadius: 8, padding: 4 };
+  const panel = { background: c.bg1, borderRadius: 8, padding: 4 };
   const sections: WidgetGroupSection[] = [
     {
       id: "apis",
