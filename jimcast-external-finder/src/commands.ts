@@ -5,13 +5,15 @@ import type {
 import { readFinderStatus, currentFolder, type FinderStatus } from "./data.js";
 import { cliItem, rowPathOf, ROW_PREFIX } from "./render.js";
 import {
-  shq, parentOf, seq,
+  shq, parentOf, seq, guarded,
   selectCmd, leftCmd, rightCmd, markCmd, unmarkCmd, toggleMarkCmd, selectAllCmd,
   CLEAR_MARKS_CMD, ZIP_MARKED_CMD, TRASH_ASK_CMD, TRASH_CANCEL_CMD, TRASH_CONFIRMED_CMD,
   TOGGLE_HIDDEN_CMD, yankCmd, pasteCmd, openCmd, revealCmd,
 } from "./shell.js";
 
-// ═══ CLI: `jimcast widget command xfinder <command> [args...]` ═══════════════
+// ═══ CLI: `jimcast widget command <widget> <command> [args...]` ═════════════
+// <widget> is the widget's catalog alias or its full id
+// ("jimcast-external-finder.finder"); core accepts nothing else.
 
 // Relative paths resolve against the CALLER's cwd (ctx.cwd). Symlinks are not resolved.
 function normalizePath(p: string): string {
@@ -47,7 +49,7 @@ async function targetsOrSelection(ctx: WidgetCliContext): Promise<string[]> {
 
 async function needMarks(ctx: WidgetCliContext): Promise<FinderStatus> {
   const st = await readFinderStatus(ctx);
-  if (!st.marked.length) throw new Error("nothing is marked — run `xfinder mark <path>` first");
+  if (!st.marked.length) throw new Error("nothing is marked — run `mark <path>` first");
   return st;
 }
 
@@ -76,7 +78,7 @@ export const CLI_COMMANDS: WidgetCliCommand[] = [
         `hidden    ${st.showHidden ? "shown" : "hidden"}`,
         st.marked.length ? `marked    ${st.marked.length}` : "marked    (none)",
         ...st.marked.map((m) => `  ${m}`),
-        ...(st.confirming ? ["trash     waiting — `xfinder trash --yes` or `--cancel`"] : []),
+        ...(st.confirming ? ["trash     waiting — `trash --yes` or `--cancel`"] : []),
       ].join("\n");
     },
   },
@@ -217,6 +219,11 @@ export const CLI_COMMANDS: WidgetCliCommand[] = [
 
 // ═══ Keys ═══════════════════════════════════════════════════════════════════
 // Every action goes through ctx.dispatch, so the Finder re-renders as for a click.
+//
+// The three toggles (select, select_all, toggle_hidden) are `guarded`: one key
+// press that reaches this plugin twice (or reaches both this action and a row's
+// click action) must toggle once, not twice. The CLI commands above are not
+// guarded on purpose, so scripts can still toggle the same path back to back.
 
 /** Keep the cursor on the same row after the re-render. */
 const keepFocus = (ctx: WidgetKeyContext) =>
@@ -236,13 +243,18 @@ export const KEY_ACTIONS: WidgetKeyAction[] = [
     async run(ctx) {
       const p = rowPathOf(ctx.focusedItemId);
       if (!p) return;
-      await ctx.dispatch(cliItem(ctx, "select", toggleMarkCmd(p)), keepFocus(ctx));
+      // Same guard key as a file row's click action (see render.ts).
+      await ctx.dispatch(cliItem(ctx, "select", guarded(`mark:${p}`, toggleMarkCmd(p))), keepFocus(ctx));
     },
   },
   {
     id: "select_all", title: "Select all / deselect all in the current folder", default: "shift+v",
     async run(ctx) {
-      await ctx.dispatch(cliItem(ctx, "select-all", selectAllCmd(await currentFolder(ctx))), keepFocus(ctx));
+      const dir = await currentFolder(ctx);
+      await ctx.dispatch(
+        cliItem(ctx, "select-all", guarded(`select-all:${dir}`, selectAllCmd(dir))),
+        keepFocus(ctx),
+      );
     },
   },
   {
@@ -259,7 +271,10 @@ export const KEY_ACTIONS: WidgetKeyAction[] = [
   },
   {
     id: "toggle_hidden", title: "Show / hide hidden files", default: "shift+h",
-    run: (ctx) => ctx.dispatch(cliItem(ctx, "toggle-hidden", TOGGLE_HIDDEN_CMD), keepFocus(ctx)),
+    run: (ctx) => ctx.dispatch(
+      cliItem(ctx, "toggle-hidden", guarded("toggle-hidden", TOGGLE_HIDDEN_CMD)),
+      keepFocus(ctx),
+    ),
   },
   {
     id: "delete", title: "Move to Trash (asks first)", default: "d",

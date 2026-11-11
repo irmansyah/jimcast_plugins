@@ -63,6 +63,20 @@ export async function runCmd(ctx: Exec, cmd: Cmd): Promise<void> {
 }
 export const seq = (...cmds: Cmd[]): Cmd => async (ctx) => { for (const c of cmds) await runCmd(ctx, c); };
 
+const DUPLICATE_WINDOW_MS = 300;
+const lastRun = new Map<string, number>();
+
+/** Runs `cmd` unless the same `key` ran within DUPLICATE_WINDOW_MS. For toggles that one
+*  gesture can reach twice. The timestamp slides, so holding a key toggles once. */
+export const guarded = (key: string, cmd: Cmd): Cmd => async (ctx) => {
+  const now = Date.now();
+  const last = lastRun.get(key);
+  if (lastRun.size > 200) lastRun.clear();
+  lastRun.set(key, now);
+  if (last !== undefined && now - last < DUPLICATE_WINDOW_MS) return;
+  await runCmd(ctx, cmd);
+};
+
 // ── raw readers (all end in `exit 0`) ───────────────────────────────────────
 /** Prints d | f, then (files) size and kind. Nothing if the path does not exist. */
 export const statCmd = (path: string) =>

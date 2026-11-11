@@ -6,8 +6,9 @@ import { OWNS, SPEC_ID, ROW_PREFIX, rowPathOf, render } from "./render.js";
 import { runCmd, leftCmd, rightCmd } from "./shell.js";
 
 export const widget = createWidget({
-  id: "jimcast-external-finder.finder",
-  section: { title: "Finder", titleShow: true, navigationActive: true, querySearchActive: false },
+  // id: "jimcast-external-finder.finder",
+  id: `com.jimcast.official.${SPEC_ID}`,
+  section: { title: "Finder", titleShow: true, navigationActive: true },
   cli: { id: SPEC_ID, owns: OWNS, commands: CLI_COMMANDS },
   keys: { id: SPEC_ID, owns: OWNS, actions: KEY_ACTIONS },
   nav: {
@@ -28,9 +29,8 @@ export const widget = createWidget({
 });
 
 export const plugin = definePlugin({
-  name: "jimcast-external-finder",
+  name: "Jimcast Official Finder",
   description: "macOS Finder-style column browser with marks, copy/cut/paste, zip and Trash.",
-  commands: [],
   widgets: [widget],
 });
 export default plugin;

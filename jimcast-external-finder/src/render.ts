@@ -2,13 +2,16 @@
 import type { ExecutionContext, WidgetContent, WidgetItem } from "@jimcast/sdk";
 import { loadFinderState, loadImageSrc } from "./data.js";
 import {
-  type Exec, type Cmd, runCmd, listNames, join, parentOf,
+  type Exec, type Cmd, runCmd, listNames, join, parentOf, guarded,
   selectCmd, toggleMarkCmd, openCmd, revealCmd,
   TRASH_CONFIRMED_CMD, TRASH_CANCEL_CMD,
 } from "./shell.js";
 
 export const OWNS = "extfm";      // item-id prefix (core used `fm:` / `fm-`)
-export const SPEC_ID = "xfinder"; // CLI / keys spec id (core used `finder`)
+// CLI / keys / nav spec id. Internal only: the host registers the spec under
+// "<plugin>.<spec id>", which must equal the widget id ("jimcast-external-finder.finder").
+// It is NOT a name the CLI accepts; commands address the widget by alias or full id.
+export const SPEC_ID = "finder";
 export const ROW_PREFIX = `${OWNS}:`;
 
 type Action = NonNullable<WidgetItem["action"]>;
@@ -87,6 +90,10 @@ function middleTruncate(name: string, max: number): string {
 
 // Folders: select (write state), then refresh.
 // Files:   open directly, then dismiss (opts.open = false forces "select").
+//
+// A file's click toggles its mark. The command is `guarded` with the same key
+// the Space key action uses (see commands.ts), so one gesture that reaches both
+// paths toggles the mark once, not twice.
 const selectItem = (
   ctx: ExecutionContext,
   id: string, label: string, path: string, isDir: boolean,
@@ -115,7 +122,9 @@ const selectItem = (
       colorRight: isDir ? color : c.fg4,
     },
     action: openOnEnter ? act(ctx, openCmd(path), "dismiss") : act(ctx, selectCmd(path), "refresh"),
-    clickAction: openOnEnter ? act(ctx, toggleMarkCmd(path), "refresh") : undefined,
+    clickAction: openOnEnter
+      ? act(ctx, guarded(`mark:${path}`, toggleMarkCmd(path)), "refresh")
+      : undefined,
     style: opts.style,
   };
 };
