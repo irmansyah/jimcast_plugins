@@ -1,6 +1,0 @@
-// [plugin] jimcast-external-quick-tools/src/main.ts
-
-import { bootstrapPlugin } from "@jimcast/sdk/runtime";
-import plugin from "./index.js";
-
-bootstrapPlugin(plugin);

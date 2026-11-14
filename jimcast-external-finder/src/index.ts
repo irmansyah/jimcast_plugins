@@ -5,9 +5,30 @@ import { CLI_COMMANDS, KEY_ACTIONS } from "./commands.js";
 import { OWNS, SPEC_ID, ROW_PREFIX, rowPathOf, render } from "./render.js";
 import { runCmd, leftCmd, rightCmd } from "./shell.js";
 
-export const widget = createWidget({
-  // id: "jimcast-external-finder.finder",
-  id: `com.jimcast.official.${SPEC_ID}`,
+export const regularWidget = createWidget({
+  id: `com.jimcast.plugins.${SPEC_ID}`,
+  section: { title: "Finder", titleShow: true, navigationActive: true },
+  cli: { id: SPEC_ID, owns: OWNS, commands: CLI_COMMANDS },
+  keys: { id: SPEC_ID, owns: OWNS, actions: KEY_ACTIONS },
+  nav: {
+    id: SPEC_ID,
+    owns: OWNS,
+    stickyFocus: true,
+    tree: { prefix: ROW_PREFIX },
+    async left(ctx, itemId) {
+      const p = rowPathOf(itemId);
+      if (p) await runCmd(ctx, leftCmd(p));
+    },
+    async right(ctx, itemId) {
+      const p = rowPathOf(itemId);
+      if (p) await runCmd(ctx, rightCmd(p));
+    },
+  },
+  render: (ctx) => render(ctx),
+});
+
+export const threeRowsWidget = createWidget({
+  id: `com.jimcast.plugins.${SPEC_ID}.rows`,
   section: { title: "Finder", titleShow: true, navigationActive: true },
   cli: { id: SPEC_ID, owns: OWNS, commands: CLI_COMMANDS },
   keys: { id: SPEC_ID, owns: OWNS, actions: KEY_ACTIONS },
@@ -31,7 +52,7 @@ export const widget = createWidget({
 export const plugin = definePlugin({
   name: "Jimcast Official Finder",
   description: "macOS Finder-style column browser with marks, copy/cut/paste, zip and Trash.",
-  widgets: [widget],
+  widgets: [regularWidget, threeRowsWidget],
 });
 export default plugin;
 bootstrapPlugin(plugin);

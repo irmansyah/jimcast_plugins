@@ -6,14 +6,9 @@ import { CLI_COMMANDS } from "./commands.js";
 import { OWNS, SPEC_ID, renderColors } from "./render.js";
 
 export const colorsWidget = createWidget({
-  // The part before the first "." must be this plugin's folder name in
-  // ~/.jimcast/plugins: core routes render_widget by it.
   id: "jimcast-external-color-picker.color-picker",
-  section: { title: "Colors" },
-  showIn: ["default"],
-
+  section: { title: "Colors", titleShow: false },
   cli: { id: SPEC_ID, owns: OWNS, commands: CLI_COMMANDS },
-
   render: (ctx) => renderColors(ctx),
 });
 
