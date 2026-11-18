@@ -1,0 +1,25 @@
+{
+  "name": "jimcast-plugins",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Community plugins for jimcast, plus a skill that lets your AI write new ones.",
+  "license": "MIT",
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "install:all": "./scripts/install-all.sh",
+    "new": "./scripts/new-plugin.sh"
+  },
+  "pnpm": {
+    "overrides": {
+      "@jimcast/protocol": "link:../jimcast-sdk/packages/protocol",
+      "@jimcast/sdk": "link:../jimcast-sdk/packages/sdk"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsdown": ">=0.15.0",
+    "typescript": "^5.6.0"
+  }
+}

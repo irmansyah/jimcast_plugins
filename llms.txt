@@ -1,0 +1,30 @@
+# jimcast-plugins
+
+> Community plugins for jimcast (a macOS command-bar launcher) written in TypeScript with @jimcast/sdk, plus an AI skill that teaches coding assistants to write new plugins.
+
+A plugin is a small Node program that returns widget data (lists, grids, progress bars) and runs shell scripts on click. Plugins are stateless: state lives in files under ~/.jimcast/ext-<name>/.
+
+## Start here
+- [AGENTS.md](AGENTS.md): repo map, commands, conventions
+- [Skill](skills/jimcast-plugin/SKILL.md): rules and fast path for writing a plugin
+- [Smallest plugin](examples/hello/src/index.ts): one file, one button
+- [Full small plugin](examples/counter/src/render.ts): state file, buttons, CLI
+
+## Reference
+- [Widget API](skills/jimcast-plugin/references/widget-api.md)
+- [Content types](skills/jimcast-plugin/references/content-types.md)
+- [Shell patterns](skills/jimcast-plugin/references/shell-patterns.md)
+- [CLI and keys](skills/jimcast-plugin/references/cli-and-keys.md)
+- [Core quirks](skills/jimcast-plugin/references/core-quirks.md)
+- [Porting a core widget](skills/jimcast-plugin/references/porting-from-core.md)
+
+## Plugins
+- [pomodoro](plugins/pomodoro/src/render.ts): timer, progress bar, notifications
+- [calendar](plugins/calendar/src/render.ts): date strip and today's tasks
+- [colors](plugins/colors/src/render.ts): palettes, profiles, copy hex
+- [emoji](plugins/emoji/src/render.ts): category tabs, recent, copy
+
+## Optional
+- [Architecture](docs/architecture.md)
+- [Core changes needed](docs/core-changes.md)
+- [Plugin catalog](docs/plugin-catalog.md)
