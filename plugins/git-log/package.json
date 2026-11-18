@@ -1,0 +1,25 @@
+{
+  "name": "com.jimcast.plugins.git-log",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.mjs",
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "jimcast": {
+    "capabilities": ["shell"]
+  },
+  "dependencies": {
+    "@jimcast/protocol": "file:../../../jimcast-sdk/packages/protocol",
+    "@jimcast/sdk": "file:../../../jimcast-sdk/packages/sdk"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsdown": ">=0.15.0",
+    "typescript": "^5.6.0"
+  }
+}
