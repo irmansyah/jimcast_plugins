@@ -15,18 +15,39 @@ macOS only (`open`, `pbpaste`).
 
 ## Install
 
-```sh
-./scripts/install.sh jim-notes
+```bash
+jimcast plugin install notes
+# or by package id:
+jimcast plugin install com.jimcast.plugins.notes
 ```
 
-The alias lives in `app_config.json` (declared in `package.json` as `jimcast.app_config`); the installer copies
-it to the installed folder. If core does not apply it automatically, merge it into `~/.jimcast/config.json`:
+This downloads the plugin from the plugin registry, installs its dependencies,
+builds it (the SDK is bundled in), copies the result to
+`~/.jimcast/plugins/<plugin id>/`, adds a `notes` alias to the `widgets`
+map in `~/.jimcast/config.json` (if it isn't there yet), and asks the running
+jimcast-core to reload. It needs `git`, `node`, `pnpm` and `bash`.
+
+The plugin id is the `name` in `package.json`. The alias that gets added is:
 
 ```json
-"widgets": { "note": { "use": "com.jimcast.plugins.notes" } }
+"widgets": { "notes": { "use": "com.jimcast.plugins.notes" } }
 ```
 
-Then `jimcast widget command note setup` creates the folders from the config.
+The alias only declares the widget. To show it, place `notes` in a
+section of your layout (`config_section.json`).
+
+Plugin processes outlive reloads, so if you reinstall over a running copy,
+fully quit and relaunch jimcast-core.
+
+### Install from a local checkout (plugin development)
+
+```bash
+./scripts/install.sh notes
+```
+
+This does the same build and copy from your working tree, without cloning. It
+does not touch `config.json` or reload the app, so add the alias above by hand
+and relaunch jimcast-core.
 
 ## Config
 

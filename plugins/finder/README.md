@@ -6,10 +6,40 @@ multi-select marks, copy/cut/paste, zip, Trash (two-step confirm), hidden-file t
 macOS only (`stat -f`, `sips`, `md5 -q`, `open`).
 
 ## Install
+
+```bash
+jimcast plugin install finder
+# or by package id:
+jimcast plugin install com.jimcast.plugins.finder
 ```
-pnpm install && pnpm build && pnpm typecheck
+
+This downloads the plugin from the plugin registry, installs its dependencies,
+builds it (the SDK is bundled in), copies the result to
+`~/.jimcast/plugins/<plugin id>/`, adds a `finder` alias to the `widgets`
+map in `~/.jimcast/config.json` (if it isn't there yet), and asks the running
+jimcast-core to reload. It needs `git`, `node`, `pnpm` and `bash`.
+
+The plugin id is the `name` in `package.json`. The alias that gets added is:
+
+```json
+"widgets": { "finder": { "use": "com.jimcast.plugins.finder" } }
 ```
-Copy `dist/` and `package.json` into `~/.jimcast/plugins/<plugin id>/`.
+
+The alias only declares the widget. To show it, place `finder` in a
+section of your layout (`config_section.json`).
+
+Plugin processes outlive reloads, so if you reinstall over a running copy,
+fully quit and relaunch jimcast-core.
+
+### Install from a local checkout (plugin development)
+
+```bash
+./scripts/install.sh finder
+```
+
+This does the same build and copy from your working tree, without cloning. It
+does not touch `config.json` or reload the app, so add the alias above by hand
+and relaunch jimcast-core.
 
 ## Panel entry
 ```json

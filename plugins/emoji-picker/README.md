@@ -3,20 +3,41 @@
 The emoji picker as an external jimcast plugin: a port of core's built-in
 `emojiPicker.ts` (same shell scripts, same layout) built only on `@jimcast/sdk`.
 
-## Build and install
+## Install
 
 ```bash
-pnpm install        # or npm install
-pnpm build          # -> dist/index.mjs (the SDK is bundled in)
+jimcast plugin install emoji-picker
+# or by package id:
+jimcast plugin install com.jimcast.plugins.emoji-picker
 ```
 
-Copy `dist/` and `package.json` to `~/.jimcast/plugins/com.jimcast.plugins.emojipicker/`
-(or use `jimcast-core/scripts/sync-plugin.sh jim-emojipicker`), then
-reload jimcast-core. Open it as a panel:
+This downloads the plugin from the plugin registry, installs its dependencies,
+builds it (the SDK is bundled in), copies the result to
+`~/.jimcast/plugins/<plugin id>/`, adds a `emoji-picker` alias to the `widgets`
+map in `~/.jimcast/config.json` (if it isn't there yet), and asks the running
+jimcast-core to reload. It needs `git`, `node`, `pnpm` and `bash`.
+
+The plugin id is the `name` in `package.json`. The alias that gets added is:
 
 ```json
-{ "id": "com.jimcast.plugins.emojipicker", "label": "Emoji", "kind": "external-component" }
+"widgets": { "emoji-picker": { "use": "com.jimcast.plugins.emoji-picker" } }
 ```
+
+The alias only declares the widget. To show it, place `emoji-picker` in a
+section of your layout (`config_section.json`).
+
+Plugin processes outlive reloads, so if you reinstall over a running copy,
+fully quit and relaunch jimcast-core.
+
+### Install from a local checkout (plugin development)
+
+```bash
+./scripts/install.sh emoji-picker
+```
+
+This does the same build and copy from your working tree, without cloning. It
+does not touch `config.json` or reload the app, so add the alias above by hand
+and relaunch jimcast-core.
 
 ## Usage
 

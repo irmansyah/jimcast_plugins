@@ -18,18 +18,39 @@ All code is in one file, `src/index.ts` (shell, data, render, commands, plugin, 
 
 ## Install
 
-```sh
-pnpm install && pnpm build && pnpm typecheck
-./scripts/install.sh jim-jtop
+```bash
+jimcast plugin install jtop
+# or by package id:
+jimcast plugin install com.jimcast.plugins.jtop
 ```
 
-`install.sh` copies `app_config.json` next to `package.json` in `~/.jimcast/plugins/<plugin id>/`.
-It adds the `jtop` alias to the platform config. If the alias is not applied automatically,
-merge this into `~/.jimcast/config.json`:
+This downloads the plugin from the plugin registry, installs its dependencies,
+builds it (the SDK is bundled in), copies the result to
+`~/.jimcast/plugins/<plugin id>/`, adds a `jtop` alias to the `widgets`
+map in `~/.jimcast/config.json` (if it isn't there yet), and asks the running
+jimcast-core to reload. It needs `git`, `node`, `pnpm` and `bash`.
+
+The plugin id is the `name` in `package.json`. The alias that gets added is:
 
 ```json
-{ "widgets": { "jtop": { "use": "com.jimcast.plugins.jtop" } } }
+"widgets": { "jtop": { "use": "com.jimcast.plugins.jtop" } }
 ```
+
+The alias only declares the widget. To show it, place `jtop` in a
+section of your layout (`config_section.json`).
+
+Plugin processes outlive reloads, so if you reinstall over a running copy,
+fully quit and relaunch jimcast-core.
+
+### Install from a local checkout (plugin development)
+
+```bash
+./scripts/install.sh jtop
+```
+
+This does the same build and copy from your working tree, without cloning. It
+does not touch `config.json` or reload the app, so add the alias above by hand
+and relaunch jimcast-core.
 
 ## CLI
 

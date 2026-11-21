@@ -9,15 +9,39 @@ last run on the right.
 
 ## Install
 
-```sh
-pnpm install && pnpm build && pnpm typecheck
+```bash
+jimcast plugin install restapi
+# or by package id:
+jimcast plugin install com.jimcast.plugins.restapi
 ```
 
-Then install the plugin folder into jimcast and add this entry to your panel config:
+This downloads the plugin from the plugin registry, installs its dependencies,
+builds it (the SDK is bundled in), copies the result to
+`~/.jimcast/plugins/<plugin id>/`, adds a `restapi` alias to the `widgets`
+map in `~/.jimcast/config.json` (if it isn't there yet), and asks the running
+jimcast-core to reload. It needs `git`, `node`, `pnpm` and `bash`.
+
+The plugin id is the `name` in `package.json`. The alias that gets added is:
 
 ```json
-{ "id": "com.jimcast.plugins.restapi" }
+"widgets": { "restapi": { "use": "com.jimcast.plugins.restapi" } }
 ```
+
+The alias only declares the widget. To show it, place `restapi` in a
+section of your layout (`config_section.json`).
+
+Plugin processes outlive reloads, so if you reinstall over a running copy,
+fully quit and relaunch jimcast-core.
+
+### Install from a local checkout (plugin development)
+
+```bash
+./scripts/install.sh restapi
+```
+
+This does the same build and copy from your working tree, without cloning. It
+does not touch `config.json` or reload the app, so add the alias above by hand
+and relaunch jimcast-core.
 
 ## Configs
 

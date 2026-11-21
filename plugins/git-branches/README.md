@@ -7,15 +7,39 @@ Deletes are safe (`git branch -d`) and always ask first; force delete is a separ
 
 ## Install
 
-```sh
-./scripts/install.sh jim-git-branches
+```bash
+jimcast plugin install git-branches
+# or by package id:
+jimcast plugin install com.jimcast.plugins.git-branches
 ```
 
-Add an alias to `~/.jimcast/config.json`:
+This downloads the plugin from the plugin registry, installs its dependencies,
+builds it (the SDK is bundled in), copies the result to
+`~/.jimcast/plugins/<plugin id>/`, adds a `git-branches` alias to the `widgets`
+map in `~/.jimcast/config.json` (if it isn't there yet), and asks the running
+jimcast-core to reload. It needs `git`, `node`, `pnpm` and `bash`.
+
+The plugin id is the `name` in `package.json`. The alias that gets added is:
 
 ```json
-"widgets": { "git": { "use": "com.jimcast.plugins.git-branches" } }
+"widgets": { "git-branches": { "use": "com.jimcast.plugins.git-branches" } }
 ```
+
+The alias only declares the widget. To show it, place `git-branches` in a
+section of your layout (`config_section.json`).
+
+Plugin processes outlive reloads, so if you reinstall over a running copy,
+fully quit and relaunch jimcast-core.
+
+### Install from a local checkout (plugin development)
+
+```bash
+./scripts/install.sh git-branches
+```
+
+This does the same build and copy from your working tree, without cloning. It
+does not touch `config.json` or reload the app, so add the alias above by hand
+and relaunch jimcast-core.
 
 ## CLI
 
