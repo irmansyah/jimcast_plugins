@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/install.sh <plugin> [--no-build]      (also: --all)
+# jimcast-plugins/scripts/install.sh <plugin> [--no-build]      (also: --all)
 #
 # Builds a plugin and copies it to ~/.jimcast/plugins/<package name>/.
 # <plugin> is a folder name (pomodoro), or a path (plugins/pomodoro, examples/hello, ./my-plugin).
@@ -9,6 +9,10 @@
 #   - react:   has vite.config.ts (webview UI)   -> dist/ (+ optional dist-backend/)
 #   - native:  has tsdown.config.ts, no webview  -> dist/ only
 #   - unknown: neither found; builds anyway and copies whatever dist/ appears
+#
+# App config: when package.json has "jimcast": { "app_config": "app_config.json" }, that file
+# (a fragment for ~/.jimcast/config.json, e.g. the widget alias) is copied next to package.json
+# in the installed folder, and the installer prints the reminder to merge it.
 #
 # Env: JIMCAST_PLUGINS_DIR overrides the destination root (default: ~/.jimcast/plugins).
 set -euo pipefail
@@ -55,6 +59,17 @@ src="$(resolve "$target")" || { echo "error: plugin '$target' not found (looked 
 name="$(node -p "require('$src/package.json').name")"
 dst="$dest_root/$name"
 
+# File named by package.json "jimcast.app_config" (empty when not declared).
+app_cfg="$(node -p "require('$src/package.json').jimcast?.app_config ?? ''")"
+if [ -n "$app_cfg" ]; then
+  case "$app_cfg" in
+    */*|*..*) echo "error: jimcast.app_config must be a plain file name in the plugin folder, got '$app_cfg'" >&2; exit 1 ;;
+  esac
+  [ -f "$src/$app_cfg" ] || { echo "error: package.json declares app_config '$app_cfg' but $src/$app_cfg does not exist" >&2; exit 1; }
+  node -e "JSON.parse(require('fs').readFileSync('$src/$app_cfg','utf8'))" 2>/dev/null \
+    || { echo "error: $app_cfg is not valid JSON" >&2; exit 1; }
+fi
+
 # --- detect plugin type ----------------------------------------------------------
 if   [ -f "$src/vite.config.ts" ];   then kind="react"
 elif [ -f "$src/tsdown.config.ts" ]; then kind="native"
@@ -93,6 +108,12 @@ cp "$src/package.json" "$dst/package.json"
 for f in manifest.json config.json; do
   if [ -f "$src/$f" ]; then cp "$src/$f" "$dst/$f"; fi
 done
+# app config declared in package.json (a stale copy is removed when it is no longer declared)
+if [ -n "$app_cfg" ]; then
+  cp "$src/$app_cfg" "$dst/$app_cfg"
+else
+  rm -f "$dst/app_config.json"
+fi
 
 # --- backend process entry (react plugins, if present) -----------------------------
 # Webview-only plugins with no host-communication needs may not have one, but a stub
@@ -102,3 +123,6 @@ if [ -d "$src/dist-backend" ]; then
 fi
 
 echo "==> installed '$name' ($kind) -> $dst  (reload jimcast-core)"
+if [ -n "$app_cfg" ]; then
+  echo "    app config: $dst/$app_cfg  (merge it into ~/.jimcast/config.json if it is not applied automatically)"
+fi
