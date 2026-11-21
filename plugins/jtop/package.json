@@ -1,0 +1,41 @@
+{
+  "name": "com.jimcast.plugins.jtop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.mjs",
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "jimcast": {
+    "capabilities": [
+      "shell",
+      "widget-cli",
+      "widget-keys"
+    ],
+    "app_config": "app_config.json",
+    "widgets": [
+      {
+        "id": "com.jimcast.plugins.jtop",
+        "show_in": [
+          "default"
+        ],
+        "searchable": true,
+        "repeat": {
+          "enable": true,
+          "seconds": 4
+        }
+      }
+    ]
+  },
+  "devDependencies": {
+    "@jimcast/protocol": "^0.1.0",
+    "@jimcast/sdk": "^0.1.0",
+    "@types/node": "^22.0.0",
+    "tsdown": ">=0.15.0",
+    "typescript": "^5.6.0"
+  }
+}

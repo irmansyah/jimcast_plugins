@@ -1,0 +1,7 @@
+[
+  { "name": "Trash",           "path": "~/.Trash" },
+  { "name": "Downloads",       "path": "~/Downloads" },
+  { "name": "Jimcast-core",    "path": "~/works/_startup/jimcast/jimcast-core" },
+  { "name": "Jimcast-sdk",     "path": "~/works/_startup/jimcast/jimcast-sdk" },
+  { "name": "Jimcast-plugins", "path": "~/works/_startup/jimcast/jimcast-plugins" }
+]

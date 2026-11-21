@@ -11,5 +11,5 @@ export default defineConfig({
   outDir: "dist",
   clean: true,
   dts: false,
-  noExternal: [/^@jimcast\//],
+  deps: { alwaysBundle: [/^@jimcast\//] },
 });
