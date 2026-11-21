@@ -1,19 +1,26 @@
 // [plugin] jim-clipboard-history/src/index.ts
 //
-// Clipboard history manager. Same layout as the REST API plugin:
-//   left  = clipboard history (pinned first, then newest first)
-//   right = full content of the selected entry
+// Clipboard history manager. Same layout and colors as the REST API plugin:
+//   left  = a pinned capture switcher, then the history as cards
+//           (pinned first, then newest first)
+//   right = status line + key hints, then the full content of the selected entry
 //
-// Enter on a row selects it (preview on the right); Enter on the already
+// Left is only the header and the history list. Enter on the header toggles
+// capture (like the config switcher in the REST API plugin). Enter on a
+// history row selects it (preview on the right); Enter on the already
 // selected row copies it back to the clipboard and dismisses the bar.
-// The pinned rows at the top pause/resume capture, pin/unpin, delete the
-// selected entry, or clear the unpinned history.
+// Everything else is a key binding (no buttons):
+//   ctrl+p pin/unpin the focused entry     ctrl+d delete the focused entry
+//   ctrl+x clear the unpinned history      ctrl+t pause/resume capture
+// The right status line shows the selected entry, the last action
+// ("Cleared 5", "Pinned", ...) for a few seconds and whether it is pinned.
 //
 // Storage: ~/.jimcast/plugin-data/<plugin id>/
 //   config.json   settings (created with defaults on first run, edit freely)
 //   entries/<id>  one file per entry, id = content hash (duplicates just move to the top)
 //   pins/<id>     marker file for pinned entries
 //   selected      id of the entry shown on the right
+//   status        last action message shown in the status line (epoch ms|text)
 //
 // Capture: every refresh (REFRESH_SECONDS) the clipboard is read once and
 // stored. There is no background daemon, so copies are only recorded while
@@ -44,11 +51,15 @@ const ENTRIES_DIR = `${DIR}/entries`;
 const PINS_DIR = `${DIR}/pins`;
 const CONFIG_FILE = `${DIR}/config.json`;
 const F_SELECTED = `${DIR}/selected`;
+const F_STATUS = `${DIR}/status`;
 // Hash of an entry that was just deleted/cleared while still on the clipboard,
 // so the next capture does not bring it straight back.
 const F_SKIP = `${DIR}/skip`;
 
 const PRE = `mkdir -p "${ENTRIES_DIR}" "${PINS_DIR}"`;
+
+// How long the last action message stays in the status line.
+const MSG_SECONDS = 10;
 
 // Local poll interval (seconds). Fixed at build time, see README.
 const REFRESH_SECONDS = 2;
@@ -73,11 +84,12 @@ elif command -v xsel >/dev/null 2>&1; then xsel --clipboard --input
 fi`;
 
 // Raw, untrimmed stdout is parsed in loadState. Tab-separated records:
-//   sel<TAB>id | tool<TAB>0|1 | pin<TAB>id | e<TAB>id (newest first)
+//   sel<TAB>id | msg<TAB>epoch_ms|text | tool<TAB>0|1 | pin<TAB>id | e<TAB>id (newest first)
 //   size<TAB>id<TAB>bytes | prev<TAB>id<TAB>first non-blank line
 const READ_STATE = `
 d="${DIR}"; mkdir -p "$d/entries" "$d/pins"
 printf 'sel\\t%s\\n' "$(cat "$d/selected" 2>/dev/null)"
+printf 'msg\\t%s\\n' "$(cat "$d/status" 2>/dev/null)"
 t=0; for x in pbpaste wl-paste xclip xsel; do command -v "$x" >/dev/null 2>&1 && t=1; done
 printf 'tool\\t%s\\n' "$t"
 for p in $(ls -1 "$d/pins"); do printf 'pin\\t%s\\n' "$p"; done
@@ -289,6 +301,20 @@ interface State {
   selId: string; // resolved selection ("" when no entries)
   content: string[]; // lines of the selected entry (at most preview_lines)
   truncated: boolean;
+  msg: string; // last action message, "" when none or older than MSG_SECONDS
+}
+
+// "<epoch ms>|<text>" -> text while it is younger than MSG_SECONDS.
+function freshMessage(raw: string): string {
+  const i = raw.indexOf("|");
+  if (i < 0) return "";
+  const at = Number(raw.slice(0, i));
+  return Number.isFinite(at) && Date.now() - at < MSG_SECONDS * 1000 ? raw.slice(i + 1).trim() : "";
+}
+
+// Shown in the status line for a few seconds.
+async function setStatus(ctx: Exec, text: string): Promise<void> {
+  await ctx.exec(`${PRE}; printf %s ${shq(`${Date.now()}|${text}`)} > "${F_STATUS}"`);
 }
 
 async function loadState(
@@ -303,6 +329,7 @@ async function loadState(
   const sizes = new Map<string, number>();
   const prev = new Map<string, string>();
   let wanted = "";
+  let msgRaw = "";
   let shellTool = false;
   for (const line of res.stdout.split("\n")) {
     const f = line.split("\t");
@@ -310,6 +337,9 @@ async function loadState(
     switch (f[0]) {
       case "sel":
         wanted = id;
+        break;
+      case "msg":
+        msgRaw = f.slice(1).join(" ");
         break;
       case "tool":
         shellTool = id === "1";
@@ -346,6 +376,7 @@ async function loadState(
     selId: sel?.id ?? "",
     content: [],
     truncated: false,
+    msg: freshMessage(msgRaw),
   };
   if (sel) {
     const body = await ctx.exec(
@@ -369,15 +400,21 @@ type Action = NonNullable<WidgetItem["action"]>;
 type GroupContent = Extract<WidgetContent, { type: "group" }>;
 type WidgetGroupSection = GroupContent["sections"][number];
 
-const fn = (run: () => Promise<void>, then: "refresh" | "dismiss" = "refresh"): Action => ({
-  run,
+const act = (ctx: Exec, cmd: string, then: "refresh" | "dismiss" = "refresh"): Action => ({
+  run: async () => {
+    await ctx.exec(cmd);
+  },
   then,
 });
 
-const act = (ctx: Exec, cmd: string, then: "refresh" | "dismiss" = "refresh"): Action =>
-  fn(async () => {
-    await ctx.exec(cmd);
-  }, then);
+// Pause / resume capture (the pinned header item on the left).
+const toggleCapture = (ctx: Exec, cfg: Config): Action => ({
+  run: async () => {
+    await setConfigKey(ctx, "capture", !cfg.capture);
+    await setStatus(ctx, cfg.capture ? "Capture paused" : "Capture resumed");
+  },
+  then: "refresh",
+});
 
 const cliItem = (ctx: Exec, id: string, cmd: string): WidgetItem => ({
   id: `${OWNS}-cli:${id}`,
@@ -396,7 +433,8 @@ function palette(ctx: ExecutionContext) {
     fg: g("fg", "#ebdbb2"),
     fg2: g("fg2", "#d5c4a1"),
     fg4: g("fg4", "#a89984"),
-    bg1: g("bg1", "#232326"),
+    bg: g("bg", "#232326"),
+    bg1: g("bg1", "#2e2e32"),
     yellow: g("yellow", "#d79921"),
     brightGreen: g("brightGreen", "#b8bb26"),
     brightYellow: g("brightYellow", "#fabd2f"),
@@ -405,8 +443,17 @@ function palette(ctx: ExecutionContext) {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-const short = (s: string, max: number) => (s.length > max ? s.slice(0, max - 1) + "…" : s);
 const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
+
+// Middle truncation: "test1test1test1" -> "test1te....st1" (keeps start and end).
+const ELLIPSIS = "....";
+function middle(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const keep = Math.max(2, max - ELLIPSIS.length);
+  const head = Math.ceil(keep / 2);
+  const tail = keep - head;
+  return s.slice(0, head) + ELLIPSIS + (tail > 0 ? s.slice(-tail) : "");
+}
 
 function fmtSize(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -435,6 +482,10 @@ function outputLines(out: string[], wrapAt: number, maxRows: number): string[] {
   return rows;
 }
 
+// Default key bindings (remap per widget in ~/.jimcast/keybindings.json).
+const KEYS = { pin: "ctrl+p", delete: "ctrl+d", clear: "ctrl+x", capture: "ctrl+t" };
+const keyHint = (k: string) => k.replace(/^ctrl\+/, "^").toUpperCase();
+
 // ── Content ─────────────────────────────────────────────────────────────────
 function messageContent(text: string, color: string): WidgetContent {
   return { type: "text", data: { id: `${OWNS}-msg`, attribute: { label1: text, color1: color } } };
@@ -456,92 +507,57 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
 
   const sel = st.entries.find((e) => e.id === st.selId);
   const pinnedCount = st.entries.filter((e) => e.pinned).length;
-  const unpinnedCount = st.entries.length - pinnedCount;
 
-  // LEFT: control rows (pinned) + the history.
+  // LEFT: capture switcher (pinned) + the history entries (cards).
   const left: WidgetItem[] = [
     {
       id: `${OWNS}-capture`,
       pinned: true,
       attribute: {
-        label1: cfg.capture ? "● Capturing" : "⏸ Paused",
-        color1: cfg.capture ? c.brightGreen : c.brightYellow,
-        label2: `${st.entries.length} saved · ${pinnedCount} pinned`,
+        label1: "Clipboard history",
+        color1: c.fg2,
+        label2: `${st.entries.length} saved  ${pinnedCount} pinned`,
         color2: c.fg4,
-        labelRight: cfg.capture ? "pause" : "resume",
-        colorRight: c.fg4,
-        textSizeRight: FONT.xs,
+        labelRight: cfg.capture ? "● Capturing" : "⏸ Paused",
+        colorRight: cfg.capture ? c.brightGreen : c.brightYellow,
       },
-      action: fn(async () => {
-        await setConfigKey(ctx, "capture", !cfg.capture);
-      }),
+      action: toggleCapture(ctx, cfg),
     },
   ];
-  if (sel) {
-    left.push(
-      {
-        id: `${OWNS}-pin`,
-        pinned: true,
-        attribute: {
-          label1: sel.pinned ? "Unpin selected" : "Pin selected",
-          color1: c.fg2,
-          label2: short(oneLine(sel.preview), 34),
-          color2: c.fg4,
-          labelRight: "📌",
-          colorRight: c.fg4,
-        },
-        action: act(ctx, pinCmd(sel.id)),
-      },
-      {
-        id: `${OWNS}-delete`,
-        pinned: true,
-        attribute: {
-          label1: "Delete selected",
-          color1: c.fg2,
-          label2: short(oneLine(sel.preview), 34),
-          color2: c.fg4,
-          labelRight: "🗑",
-          colorRight: c.fg4,
-        },
-        action: act(ctx, deleteCmd(sel.id)),
-      },
-    );
-  }
-  if (unpinnedCount > 0) {
-    left.push({
-      id: `${OWNS}-clear`,
-      pinned: true,
-      attribute: {
-        label1: "Clear unpinned",
-        color1: c.fg2,
-        label2: `${unpinnedCount} ${unpinnedCount === 1 ? "entry" : "entries"}`,
-        color2: c.fg4,
-        labelRight: "✕",
-        colorRight: c.fg4,
-      },
-      action: act(ctx, clearCmd(cfg, false)),
-    });
-  }
   for (const e of st.entries) {
     const isSel = e.id === st.selId;
     left.push({
       id: `${OWNS}:${e.id}`,
+      // NOTE: `style` on WidgetItem is a guess (sections accept it, see `panel`).
+      // If the SDK names it differently, adjust here.
+      style: { background: c.bg1, borderRadius: 6, padding: 4, marginBottom: 4 },
       attribute: {
-        label1: short(oneLine(e.preview) || "(blank)", cfg.label_max),
+        label1: middle(oneLine(e.preview) || "(blank)", cfg.label_max),
         color1: isSel ? c.yellow : c.fg,
+        // always two lines so every item has the same height
         label2: fmtSize(e.size),
         color2: c.fg4,
         labelRight: e.pinned ? "📌" : undefined,
         colorRight: c.fg4,
+        textSizeRight: FONT.xs,
       },
       // Enter selects; Enter on the selected row copies it back.
       action: isSel ? act(ctx, copyCmd(cfg, e.id), "dismiss") : act(ctx, selectCmd(e.id)),
     });
   }
+  if (!st.entries.length) {
+    left.push({
+      id: `${OWNS}-empty`,
+      pinned: true,
+      attribute: {
+        label1: cfg.capture ? "Nothing copied yet" : "Capture is paused",
+        color1: c.fg4,
+        textSize1: FONT.sm,
+      },
+    });
+  }
 
-  // RIGHT: entry info + content.
-  const modeLabel = cfg.capture ? "capturing" : "paused";
-  const modeColor = cfg.capture ? c.brightGreen : c.brightYellow;
+  // RIGHT: status line + key hints + entry content.
   let statusItem: WidgetItem;
   if (sel) {
     const idx = st.entries.indexOf(sel) + 1;
@@ -552,13 +568,13 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
         label1: `Entry ${idx}/${st.entries.length} · ${fmtSize(sel.size)} · ${st.content.length}${
           st.truncated ? "+" : ""
         } ${st.content.length === 1 && !st.truncated ? "line" : "lines"}`,
-        color1: c.fg2,
+        color1: c.brightGreen,
         textSize1: FONT.sm,
-        label2: sel.pinned ? "📌 pinned · Enter on the highlighted row copies it" : "Enter on the highlighted row copies it",
-        color2: c.fg4,
+        label2: st.msg || undefined,
+        color2: c.yellow,
         textSize2: FONT.xs,
-        labelRight: modeLabel,
-        colorRight: modeColor,
+        labelRight: sel.pinned ? "📌 pinned" : "not pinned",
+        colorRight: sel.pinned ? c.brightGreen : c.fg4,
         textSizeRight: FONT.xs,
       },
     };
@@ -569,15 +585,33 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
       attribute: {
         label1: cfg.capture
           ? "Clipboard history is empty. Copy something."
-          : "Capture is paused. Select the first row to resume.",
+          : `Capture is paused. Press ${keyHint(KEYS.capture)} to resume.`,
         color1: c.fg4,
         textSize1: FONT.sm,
-        labelRight: modeLabel,
-        colorRight: modeColor,
-        textSizeRight: FONT.xs,
+        label2: st.msg || undefined,
+        color2: c.yellow,
+        textSize2: FONT.xs,
       },
     };
   }
+
+  const hintsItem: WidgetItem = {
+    id: `${OWNS}-keys`,
+    pinned: true,
+    attribute: {
+      label1: "Keys",
+      color1: c.fg2,
+      textSize1: FONT.sm,
+      labelRight: [
+        `${keyHint(KEYS.pin)} pin`,
+        `${keyHint(KEYS.delete)} delete`,
+        `${keyHint(KEYS.clear)} clear`,
+        `${keyHint(KEYS.capture)} ${cfg.capture ? "pause" : "resume"}`,
+      ].join(" · "),
+      colorRight: c.fg4,
+      textSizeRight: FONT.xs,
+    },
+  };
 
   const outItems: WidgetItem[] = outputLines(st.content, cfg.wrap_at, cfg.preview_lines).map(
     (line, i) => ({
@@ -588,7 +622,10 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
   );
 
   const rightSections: WidgetGroupSection[] = [
-    { id: "status", content: { type: "list", datas: [statusItem] } },
+    {
+      id: "status",
+      content: { type: "list", datas: [statusItem, hintsItem] },
+    },
     ...(outItems.length
       ? [
           {
@@ -600,7 +637,7 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
       : []),
   ];
 
-  const panel = { background: c.bg1, borderRadius: 8, padding: 4 };
+  const panel = { background: c.bg, borderRadius: 8, padding: 4 };
   const sections: WidgetGroupSection[] = [
     {
       id: "history",
@@ -793,6 +830,66 @@ const CLI_COMMANDS: WidgetCliCommand[] = [
 ];
 
 // ════════════════════════════════════════════════════════════════════════════
+// Key actions
+// ════════════════════════════════════════════════════════════════════════════
+
+type KeyCtx = Exec & { focusedItemId?: string | null };
+
+// The focused history row, or the selected entry when focus is elsewhere.
+function focusedEntry(ctx: KeyCtx, st: State): Entry | undefined {
+  const id = ctx.focusedItemId ?? "";
+  const h = id.startsWith(`${OWNS}:`) ? id.slice(OWNS.length + 1) : "";
+  return st.entries.find((e) => e.id === h) ?? st.entries.find((e) => e.id === st.selId);
+}
+
+export const KEY_ACTIONS = [
+  {
+    id: "pin",
+    title: "Pin or unpin the focused entry",
+    default: KEYS.pin,
+    async run(ctx: KeyCtx) {
+      const e = focusedEntry(ctx, await loadState(ctx));
+      if (!e) return;
+      await ctx.exec(pinCmd(e.id));
+      await setStatus(ctx, e.pinned ? "Unpinned" : "Pinned");
+    },
+  },
+  {
+    id: "delete",
+    title: "Delete the focused entry",
+    default: KEYS.delete,
+    async run(ctx: KeyCtx) {
+      const e = focusedEntry(ctx, await loadState(ctx));
+      if (!e) return;
+      await ctx.exec(deleteCmd(e.id));
+      await setStatus(ctx, "Deleted");
+    },
+  },
+  {
+    id: "clear",
+    title: "Clear the unpinned history",
+    default: KEYS.clear,
+    async run(ctx: KeyCtx) {
+      const st = await loadState(ctx);
+      const n = st.entries.filter((e) => !e.pinned).length;
+      await ctx.exec(clearCmd(st.cfg, false));
+      await setStatus(ctx, n ? `Cleared ${n} ${n === 1 ? "entry" : "entries"}` : "Nothing to clear");
+    },
+  },
+  {
+    id: "capture",
+    title: "Pause or resume capture",
+    default: KEYS.capture,
+    async run(ctx: KeyCtx) {
+      const { cfg, error } = await loadConfig(ctx);
+      if (error) return;
+      await setConfigKey(ctx, "capture", !cfg.capture);
+      await setStatus(ctx, cfg.capture ? "Capture paused" : "Capture resumed");
+    },
+  },
+];
+
+// ════════════════════════════════════════════════════════════════════════════
 // Plugin
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -806,6 +903,7 @@ export const widget = createWidget({
   },
   repeat: { enable: true, seconds: REFRESH_SECONDS },
   cli: { owns: OWNS, commands: CLI_COMMANDS },
+  keys: { owns: OWNS, actions: KEY_ACTIONS },
   render: (ctx) => render(ctx),
 });
 

@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "jimcast": {
-    "capabilities": ["shell", "widget-cli"]
+    "capabilities": ["shell", "widget-cli", "widget-keys"]
   },
   "dependencies": {
     "@jimcast/protocol": "file:../../../jimcast-sdk/packages/protocol",

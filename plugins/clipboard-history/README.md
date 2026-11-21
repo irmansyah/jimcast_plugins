@@ -5,11 +5,31 @@ newest first), the full content of the selected entry on the right.
 
 ## Use
 
+The left side is only the history list. There are no buttons: everything except selecting is a key binding.
+
 - **Enter** on a row selects it and shows it on the right. **Enter** on the already selected row copies it back
   to the clipboard and dismisses the bar.
-- Pinned rows at the top: pause/resume capture, pin/unpin the selected entry, delete the selected entry, clear
-  the unpinned history.
 - Typing in the bar filters the list by each entry's first line.
+- A status row at the bottom shows `● Capturing` / `⏸ Paused`, the saved and pinned counts, the key hints, and
+  the last action (`Pinned`, `Deleted`, `Cleared 5 entries`, `Capture paused`, ...) for 10 seconds.
+
+## Keys
+
+| Key | Action id | Does |
+|---|---|---|
+| `ctrl+p` | `pin` | pin or unpin the focused entry |
+| `ctrl+d` | `delete` | delete the focused entry |
+| `ctrl+x` | `clear` | clear the unpinned history |
+| `ctrl+t` | `capture` | pause or resume capture |
+
+Remap them in `~/.jimcast/keybindings.json`:
+
+```json
+"widgets": { "<plugin id>": { "pin": "ctrl+p", "delete": "ctrl+d", "clear": "ctrl+x", "capture": "ctrl+t" } }
+```
+
+The key hints in the status row show the defaults, not remapped keys. When focus is not on a history row,
+pin and delete act on the selected entry.
 
 ## Install
 
@@ -58,7 +78,7 @@ jimcast widget command clip config [get <key> | set <key> <value> | reset]
 ## Storage
 
 `~/.jimcast/plugin-data/<plugin id>/`: `config.json`, `entries/<id>` (one file per entry, id = content hash,
-so a repeated copy just moves to the top), `pins/<id>`, `selected`, `skip`.
+so a repeated copy just moves to the top), `pins/<id>`, `selected`, `skip`, `status` (last action message).
 
 ## Limits
 
