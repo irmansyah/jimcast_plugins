@@ -1,0 +1,62 @@
+{
+  "app_title": "This is jsonplaceholder Users",
+  "base_url": "https://jsonplaceholder.typicode.com/users",
+  "variable_dir": "~/works/_startup/ai_translate/ai_translate_backend/request_file/_variables",
+  "variable_access_token_file": "ACCESS_TOKEN.txt",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "requests": [
+    {
+      "req_tag": "user_create",
+      "req_title": "User Create",
+      "req_type": "POST",
+      "req_end_point": "",
+      "req_body": {
+        "body_type": "RAW",
+        "body_file": "~/works/_startup/ai_translate/ai_translate_backend/request_file/users/user_post_create_body.json"
+      }
+    },
+    {
+      "req_tag": "user_update_by_id",
+      "req_title": "User Update by Id",
+      "req_type": "PUT",
+      "req_end_point": "/1",
+      "req_body": {
+        "body_type": "RAW",
+        "body_file": "~/works/_startup/ai_translate/ai_translate_backend/request_file/users/user_put_body.json"
+      }
+    },
+    {
+      "req_tag": "user_patch_by_id",
+      "req_title": "User Patch by Id",
+      "req_type": "PATCH",
+      "req_end_point": "/1",
+      "req_body": {
+        "body_type": "RAW",
+        "body_file": "~/works/_startup/ai_translate/ai_translate_backend/request_file/users/user_patch_body.json"
+      }
+    },
+    {
+      "req_tag": "user_get_by_id",
+      "req_title": "Get User by Id",
+      "req_type": "GET",
+      "req_end_point": "/1",
+      "req_body": null
+    },
+    {
+      "req_tag": "user_get_all",
+      "req_title": "Get Users All",
+      "req_type": "GET",
+      "req_end_point": "",
+      "req_body": null
+    },
+    {
+      "req_tag": "user_delete_by_id",
+      "req_title": "Delete Users by Id",
+      "req_type": "DELETE",
+      "req_end_point": "/1",
+      "req_body": null
+    }
+  ]
+}

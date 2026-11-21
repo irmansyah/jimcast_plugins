@@ -2,6 +2,11 @@
 //
 // Config-driven REST client: requests on the left, last response on the right.
 // (Merged from shell.ts, data.ts, render.ts, commands.ts and index.ts.)
+//
+// Changes in this version:
+//   - "Copy response" button in the right pane
+//   - key-binding to copy the currently shown response (see `keybindings` below)
+//   - separator rows between request items in the left list
 
 import {
   createWidget,
@@ -13,6 +18,7 @@ import {
   type WidgetCliContext,
   type WidgetContent,
   type WidgetItem,
+  type WidgetKeyAction,
 } from "@jimcast/sdk";
 import { bootstrapPlugin } from "@jimcast/sdk/runtime"; // Node only
 
@@ -34,6 +40,7 @@ const F_CONFIG = pluginDataFile("config");
 const F_SELECTED = pluginDataFile("selected");
 const F_STATUS = pluginDataFile("status");
 const F_OUT = pluginDataFile("out");
+const F_COPIED = pluginDataFile("copied"); // "yes" | "no" | absent
 
 const CONFIGS_DIR = `${DIR}/configs`;
 // `configs/` is a user-facing subfolder (users drop *.json files there).
@@ -45,7 +52,21 @@ const DEFAULT_VARIABLE_DIR = `${DIR}/_variables`;
 const MAX_LINES = 300;
 
 const setConfigCmd = (name: string) =>
-  `${PRE}; printf %s ${shq(name)} > "${F_CONFIG}"; rm -f "${F_SELECTED}" "${F_STATUS}" "${F_OUT}"`;
+  `${PRE}; printf %s ${shq(name)} > "${F_CONFIG}"; rm -f "${F_SELECTED}" "${F_STATUS}" "${F_OUT}" "${F_COPIED}"`;
+
+// Copies the FULL response (not just the visible lines) to the system clipboard.
+// Writes "yes" to the copied flag on success, "no" when no clipboard tool exists.
+const COPY_CMD = `f="${F_OUT}"
+rm -f "${F_COPIED}"
+[ -s "$f" ] || exit 0
+if command -v pbcopy >/dev/null 2>&1; then pbcopy < "$f"
+elif command -v wl-copy >/dev/null 2>&1; then wl-copy < "$f"
+elif command -v xclip >/dev/null 2>&1; then xclip -selection clipboard < "$f"
+elif command -v xsel >/dev/null 2>&1; then xsel --clipboard --input < "$f"
+elif command -v clip.exe >/dev/null 2>&1; then clip.exe < "$f"
+else echo "no" > "${F_COPIED}"; exit 0; fi
+echo "yes" > "${F_COPIED}"
+`;
 
 // jq filter from a dotted path: data.access_token -> .data.access_token, items.0.id -> .items[0].id
 const jqFilter = (path: string) =>
@@ -63,6 +84,7 @@ echo "config=$n"
 ls -1 "$c" | grep '\\.json$' | sed 's/^/configs=/'
 echo "selected=$(cat "${F_SELECTED}" 2>/dev/null)"
 echo "status=$(cat "${F_STATUS}" 2>/dev/null)"
+echo "copied=$(cat "${F_COPIED}" 2>/dev/null)"
 [ -n "$n" ] && echo "cfg=$(tr -d '\\n' < "$c/$n")"
 echo "---"
 head -${MAX_LINES} "${F_OUT}" 2>/dev/null
@@ -168,7 +190,7 @@ function runCmd(cfg: ApiConfig, r: ApiRequest): string {
   const { u, h, b } = runParts(cfg, r);
   return `${PRE}
 d="${DIR}"
-rm -f "$d/body" "$d/headers" "$d/err" "$d/out"
+rm -f "$d/body" "$d/headers" "$d/err" "$d/out" "$d/copied"
 printf %s ${shq(r.req_tag)} > "$d/selected"
 ${bearer ? `tok=$(cat ${varPath(cfg, tokenFile(cfg))} 2>/dev/null)` : ""}
 curl -sS -m 15 -X ${methodOf(r)} -D "$d/headers" -o "$d/body" ${h} ${bearer ? '-H "Authorization: Bearer $tok"' : ""} ${b} ${u} 2> "$d/err"
@@ -195,6 +217,7 @@ interface State {
   cfgError: string;
   selected: string; // req_tag of the last run
   status: string; // raw "kind|text|saved"
+  copied: string; // "", "yes" or "no" (no clipboard tool found)
   out: string[];
   hasToken: boolean;
 }
@@ -228,6 +251,7 @@ async function loadState(ctx: Exec): Promise<State> {
     cfgError: "",
     selected: "",
     status: "",
+    copied: "",
     out: [],
     hasToken: false,
   };
@@ -244,6 +268,7 @@ async function loadState(ctx: Exec): Promise<State> {
     else if (k === "configs" && v) st.configs.push(v);
     else if (k === "selected") st.selected = v;
     else if (k === "status") st.status = v;
+    else if (k === "copied") st.copied = v;
     else if (k === "cfg") {
       const p = parseConfig(v);
       st.cfg = p.cfg;
@@ -291,7 +316,8 @@ function palette(ctx: ExecutionContext) {
     fg: g("fg", "#ebdbb2"),
     fg2: g("fg2", "#d5c4a1"),
     fg4: g("fg4", "#a89984"),
-    bg1: g("bg1", "#232326"),
+    bg: g("bg", "#232326"),
+    bg1: g("bg1", "#2e2e32"),
     yellow: g("yellow", "#d79921"),
     brightGreen: g("brightGreen", "#b8bb26"),
     brightYellow: g("brightYellow", "#fabd2f"),
@@ -304,6 +330,20 @@ type Palette = ReturnType<typeof palette>;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const short = (s: string, max: number) => (s.length > max ? s.slice(0, max - 1) + "…" : s);
+
+// Middle truncation: "test1test1test1" -> "test1te....st1" (keeps start and end).
+const ELLIPSIS = "....";
+const NBSP = "\u00A0"; // keeps an empty line occupying its full row height
+function middle(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const keep = Math.max(2, max - ELLIPSIS.length);
+  const head = Math.ceil(keep / 2);
+  const tail = keep - head;
+  return s.slice(0, head) + ELLIPSIS + (tail > 0 ? s.slice(-tail) : "");
+}
+
+const TITLE_MAX = 28; // request title, one line
+const ENDPOINT_MAX = 30; // second line (flags are appended after it)
 
 function methodColor(c: Palette, m: string): string {
   switch (m) {
@@ -358,7 +398,7 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
   }
   const cfg = st.cfg;
 
-  // LEFT: config switcher (pinned) + the requests.
+  // LEFT: config switcher (pinned) + the requests (separated by thin dividers).
   const cIdx = Math.max(0, st.configs.indexOf(st.config));
   const nextConfig = st.configs[(cIdx + 1) % st.configs.length];
   const left: WidgetItem[] = [
@@ -381,10 +421,14 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
     const flags = `${isBearer(r) ? " 🔑" : ""}${r.req_variable_is_save ? " 💾" : ""}`;
     left.push({
       id: `${OWNS}:${r.req_tag}`,
+      // NOTE: `style` on WidgetItem is a guess (sections accept it, see `panel`).
+      // If the SDK names it differently, adjust here.
+      style: { background: c.bg1, borderRadius: 6, padding: 4, marginBottom: 4 },
       attribute: {
-        label1: r.req_title ?? r.req_tag,
+        label1: middle(r.req_title ?? r.req_tag, TITLE_MAX),
         color1: r.req_tag === st.selected ? c.yellow : c.fg,
-        label2: short(r.req_end_point, 34) + flags,
+        // always two lines so every item has the same height; empty -> NBSP
+        label2: (middle(r.req_end_point, ENDPOINT_MAX) + flags) || NBSP,
         color2: c.fg4,
         labelRight: m,
         colorRight: methodColor(c, m),
@@ -394,7 +438,7 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
     });
   }
 
-  // RIGHT: status line + response body.
+  // RIGHT: status line + copy button + response body.
   const parts = st.status.split("|");
   const kind = parts[0] ?? "";
   const text = parts[1] ?? "";
@@ -450,6 +494,25 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
     };
   }
 
+  // Copy button: only meaningful when there is a response to copy.
+  const copyLabel =
+    st.copied === "yes" ? "✓ copied" : st.copied === "no" ? "no clipboard tool" : "⧉ Copy";
+  const copyColor =
+    st.copied === "yes" ? c.brightGreen : st.copied === "no" ? c.brightRed : c.fg4;
+  const copyItem: WidgetItem = {
+    id: `${OWNS}-copy`,
+    pinned: true,
+    attribute: {
+      label1: "Copy response",
+      color1: c.fg2,
+      textSize1: FONT.sm,
+      labelRight: copyLabel,
+      colorRight: copyColor,
+      textSizeRight: FONT.xs,
+    },
+    action: act(ctx, COPY_CMD),
+  };
+
   const outItems: WidgetItem[] = outputLines(st.out).map((line, i) => ({
     id: `${OWNS}-out:${i}`,
     pinned: true,
@@ -457,7 +520,13 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
   }));
 
   const rightSections: WidgetGroupSection[] = [
-    { id: "status", content: { type: "list", datas: [statusItem] } },
+    {
+      id: "status",
+      content: {
+        type: "list",
+        datas: st.out.length ? [statusItem, copyItem] : [statusItem],
+      },
+    },
     ...(outItems.length
       ? [
           {
@@ -469,7 +538,7 @@ function buildContent(ctx: ExecutionContext, st: State): WidgetContent {
       : []),
   ];
 
-  const panel = { background: c.bg1, borderRadius: 8, padding: 4 };
+  const panel = { background: c.bg, borderRadius: 8, padding: 4 };
   const sections: WidgetGroupSection[] = [
     {
       id: "apis",
@@ -532,6 +601,17 @@ const CLI_COMMANDS: WidgetCliCommand[] = [
     },
   },
   {
+    id: "copy",
+    title: "Copy the last response to the clipboard",
+    async run(ctx) {
+      await ctx.exec(COPY_CMD);
+      const st = await loadState(ctx);
+      if (st.copied === "no") throw new Error("no clipboard tool found (pbcopy/wl-copy/xclip/xsel/clip.exe)");
+      if (st.copied !== "yes") throw new Error("nothing to copy (run a request first)");
+      return "copied";
+    },
+  },
+  {
     id: "status",
     title: "Status and output of the last request",
     description: "--json for machine-readable output",
@@ -559,6 +639,21 @@ const CLI_COMMANDS: WidgetCliCommand[] = [
 ];
 
 // ════════════════════════════════════════════════════════════════════════════
+// Key actions
+// ════════════════════════════════════════════════════════════════════════════
+
+const key = (id: string, title: string, def: string, cmd: string): WidgetKeyAction => ({
+  id,
+  title,
+  default: def,
+  run: (ctx) => ctx.dispatch(cliItem(ctx, id, cmd)),
+});
+
+export const KEY_ACTIONS: WidgetKeyAction[] = [
+  key("copy", "Copy response", "c", COPY_CMD),
+];
+
+// ════════════════════════════════════════════════════════════════════════════
 // Plugin
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -570,6 +665,7 @@ export const widget = createWidget({
     querySearchActive: true, // typing filters the request list
   },
   cli: { owns: OWNS, commands: CLI_COMMANDS },
+  keys: { owns: OWNS, actions: KEY_ACTIONS },
   render: (ctx) => render(ctx),
 });
 
