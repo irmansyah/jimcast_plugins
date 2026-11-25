@@ -97,7 +97,7 @@ export async function renderCalendar(ctx: ExecutionContext): Promise<WidgetConte
           label1: weekday, color1: c.fg2, textSize1: FONT.xs,
           label2: num,     color2: c.fg2, textSize2: FONT.xxl,
         },
-        style: { borderRadius: RADIUS_MD, borderColor: c.blue, padding: "6px 0" },
+        style: { borderRadius: RADIUS_MD, borderWidth: '3px', padding: "6px 0" },
       });
     } else {
       datas.push({

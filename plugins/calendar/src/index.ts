@@ -6,7 +6,7 @@ import { CLI_COMMANDS } from "./commands.js";
 import { OWNS, renderCalendar } from "./render.js";
 
 export const calendarWidget = createWidget({
-  section: { title: "Calendar", titleShow: false, navigationActive: false },
+  section: { title: "Calendar", titleShow: false, navigationActive: true },
   // Re-render every minute so the date rolls over at midnight.
   repeat: { enable: true, seconds: 60 },
   cli: { owns: OWNS, commands: CLI_COMMANDS },
