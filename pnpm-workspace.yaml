@@ -1,7 +1,3 @@
 packages:
   - "plugins/*"
   - "examples/*"
-
-overrides:
-  "@jimcast/protocol": "file:./vendor/jimcast-protocol-0.1.0.tgz"
-  "@jimcast/sdk": "file:./vendor/jimcast-sdk-0.1.0.tgz"
