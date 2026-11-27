@@ -17,8 +17,8 @@
     ]
   },
   "devDependencies": {
-    "@jimcast/protocol": "^0.1.0",
-    "@jimcast/sdk": "^0.1.0",
+    "@jimcast/protocol": "link:../../../jimcast-sdk/packages/protocol",
+    "@jimcast/sdk": "link:../../../jimcast-sdk/packages/sdk",
     "@types/node": "^22.0.0",
     "tsdown": ">=0.15.0",
     "typescript": "^5.6.0"
