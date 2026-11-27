@@ -10,6 +10,7 @@ import {
   CLEAR_MARKS_CMD, ZIP_MARKED_CMD, TRASH_ASK_CMD, TRASH_CANCEL_CMD, TRASH_CONFIRMED_CMD,
   TOGGLE_HIDDEN_CMD, TOGGLE_SORT_CMD, TOGGLE_PICKER_CMD, yankCmd, pasteCmd, openCmd, revealCmd,
 } from "./shell.js";
+import { resolve } from "node:path";
 
 // ═══ CLI: `jimcast widget command <widget> <command> [args...]` ═════════════
 // <widget> is the widget's catalog alias or its full id
@@ -265,6 +266,21 @@ export const KEY_ACTIONS: WidgetKeyAction[] = [
       );
     },
   },
+  // {
+  //   id: "open", title: "Copy marked (or the row under the cursor)", default: "v",
+  //   run: async (ctx) => await ctx.runCoreCommand(["view", resolve(ctx.cwd ?? "/", file)]),
+  // },
+{
+  id: "open", title: "Preview marked (or the row under the cursor)", default: "v",
+  async run(ctx) {
+    const st = await readFinderStatus(ctx);
+    const paths = st.marked.length
+      ? st.marked
+      : [await keyTarget(ctx)].filter((p): p is string => !!p);
+    if (!paths.length) return;
+    await ctx.runCoreCommand(["view", ...paths]);
+  },
+},
   {
     id: "copy", title: "Copy marked (or the row under the cursor)", default: "y",
     run: async (ctx) => ctx.dispatch(cliItem(ctx, "copy", yankCmd("copy", (await keyTarget(ctx)) ?? "")), keepFocus(ctx)),
