@@ -11,12 +11,6 @@
     "install:all": "./scripts/install-all.sh",
     "new": "./scripts/new-plugin.sh"
   },
-  "pnpm": {
-    "overrides": {
-      "@jimcast/protocol": "file:./vendor/jimcast-protocol-0.1.0.tgz",
-      "@jimcast/sdk": "file:./vendor/jimcast-sdk-0.1.0.tgz"
-    }
-  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsdown": ">=0.15.0",
